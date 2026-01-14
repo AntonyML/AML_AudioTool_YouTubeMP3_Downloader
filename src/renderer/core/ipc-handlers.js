@@ -107,12 +107,3 @@ const setupIpcListeners = () => {
 module.exports = {
     setupIpcListeners
 };
-        updateSystemStatus(`Error: ${data.error}`, 'error');
-        state.waitingForFirstDownload = false;
-        unlockUI();
-    });
-};
-
-module.exports = {
-    setupIpcListeners
-};

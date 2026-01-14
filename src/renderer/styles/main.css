@@ -147,15 +147,45 @@ button:disabled {
     gap: 15px;
 }
 
+.folder-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
 .folder-btn {
     width: 100%;
     background: #2a2a2a;
     border: 1px dashed #444;
+    padding: 10px;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.folder-btn.secondary {
+    flex: 0 0 40px; /* Small square button or flexible */
+    width: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Override .folder-btn width when inside folder-controls */
+.folder-controls .folder-btn:first-child {
+    flex: 1;
 }
 
 .folder-btn:hover:not(:disabled) {
     background: #333;
     border-color: #0066cc;
+}
+
+.folder-btn.secondary:hover:not(:disabled) {
+    border-color: #00aa00;
+    color: #00ff00;
+    background: #1a1a1a;
 }
 
 .folder-path-display {
