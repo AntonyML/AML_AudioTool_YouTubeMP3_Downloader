@@ -107,7 +107,7 @@ ipcMain.handle('create-folder', async (event, { basePath, newFolderName }) => {
 
 ipcMain.handle('add-download', async (event, { url, outputPath, metadata }) => {
     if (metadata && metadata.isPlaylist) {
-        return downloadManager.addPlaylist(url, outputPath, metadata);
+        return downloadManager.addPlaylist(url, outputPath, metadata, metadata.performance);
     }
     return downloadManager.addDownload(url, outputPath, metadata);
 });

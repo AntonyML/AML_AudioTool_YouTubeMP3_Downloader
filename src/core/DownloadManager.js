@@ -71,7 +71,7 @@ class DownloadManager extends EventEmitter {
         return { success: true, downloadId };
     }
 
-    async addPlaylist(url, outputPath, metadata = {}) {
+    async addPlaylist(url, outputPath, metadata = {}, performance = 20) {
         try {
             this.emit('playlist-expansion-started', { url });
             
@@ -83,10 +83,16 @@ class DownloadManager extends EventEmitter {
                 title: info.title 
             });
 
-            if (info.count > 100) {
+            // Calculate max playlist size based on performance
+            const maxPlaylistSize = Math.floor(performance * 50); // 5->250, 10->500, 15->750, 20->1000
+            
+            // Set the max size in the expander
+            this.playlistExpander.setMaxPlaylistSize(maxPlaylistSize);
+            
+            if (info.count > maxPlaylistSize) {
                 return { 
                     success: false, 
-                    error: `Playlist demasiado grande: ${info.count} videos (max 100)` 
+                    error: `Playlist demasiado grande: ${info.count} videos (max ${maxPlaylistSize})` 
                 };
             }
 
@@ -97,6 +103,8 @@ class DownloadManager extends EventEmitter {
                 videoCount: videos.length 
             });
 
+            const playlistId = `playlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
             const downloadIds = [];
             for (const video of videos) {
                 const videoMetadata = {
@@ -104,6 +112,7 @@ class DownloadManager extends EventEmitter {
                     isPlaylist: false,
                     playlistUrl: url,
                     playlistTitle: info.title,
+                    playlistId: playlistId,
                     videoTitle: video.title
                 };
 
