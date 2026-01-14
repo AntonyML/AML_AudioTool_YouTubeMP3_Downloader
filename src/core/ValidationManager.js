@@ -33,10 +33,12 @@ class ValidationManager {
      * @param {string} outputPath - Carpeta destino
      */
     validatePathLength(outputPath) {
-        // Windows MAX_PATH es 260, reservamos espacio para nombre archivo (~80 chars)
-        if (outputPath.length > 180) {
-            this.warnings.push('La ruta de destino es muy larga, podría causar errores');
-            return false;
+        // Windows MAX_PATH es 260 standard.
+        // Convertimos a advertencia. Node.js soporta long paths usando prefijo \\?\,
+        // pero algunas herramientas externas podrian fallar.
+        if (outputPath.length > 220) {
+            this.warnings.push('La ruta es muy larga. Se usara soporte extendido de Windows.');
+            return true;
         }
         return true;
     }

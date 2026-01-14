@@ -143,6 +143,8 @@ window.selectFolder = async () => {
     document.getElementById('downloadBtn').disabled = false;
 };
 
+// Eliminar lógica de createFolder manual (Revertir parche)
+
 window.startDownload = async () => {
     if (!state.currentUrl || !state.folder) {
         updateConsole('ERROR: Faltan datos');

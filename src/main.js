@@ -64,10 +64,45 @@ function setupDownloadEvents() {
 }
 
 ipcMain.handle('select-folder', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({ 
-        properties: ['openDirectory'] 
+    // Configuración robusta para el diálogo de selección
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, { 
+        properties: ['openDirectory', 'createDirectory', 'promptToCreate', 'showHiddenFiles'],
+        title: 'Seleccionar Carpeta de Destino',
+        buttonLabel: 'Seleccionar'
     });
-    return canceled ? '' : filePaths[0];
+    
+    if (canceled || filePaths.length === 0) {
+        return '';
+    }
+
+    // Normalizar la ruta inmediata para evitar problemas de diagonales invertidas o mixtas
+    return path.normalize(filePaths[0]);
+});
+
+ipcMain.handle('create-folder', async (event, { basePath, newFolderName }) => {
+    try {
+        if (!basePath || !newFolderName) return { success: false, error: 'Datos incompletos' };
+        
+        // Usar prefijo UNC para soportar rutas largas en Windows (>260 chars)
+        // El prefijo es \\?\ para rutas absolutas
+        let targetPath = path.join(basePath, newFolderName);
+        const normalPath = targetPath; // Guardamos versión normal para display
+        
+        // Añadir prefijo sí es Windows y es ruta absoluta
+        if (process.platform === 'win32' && path.isAbsolute(targetPath) && !targetPath.startsWith('\\\\?\\')) {
+            targetPath = '\\\\?\\' + targetPath;
+        }
+
+        const fs = require('fs');
+        if (!fs.existsSync(targetPath)) {
+            await fs.promises.mkdir(targetPath, { recursive: true });
+            return { success: true, newPath: normalPath }; // Devolver ruta normalizada para UI
+        } else {
+            return { success: false, error: 'La carpeta ya existe' };
+        }
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 });
 
 ipcMain.handle('add-download', async (event, { url, outputPath, metadata }) => {
