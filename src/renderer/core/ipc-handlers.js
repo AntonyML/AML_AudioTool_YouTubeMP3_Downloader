@@ -4,6 +4,7 @@ const state = require('../core/state');
 const { updateConsole, updateSystemStatus } = require('../ui/console');
 const { updateStats } = require('../ui/stats');
 const { unlockUI } = require('../ui/ui-controls');
+const { notify } = require('../ui/notifications');
 const { 
     addDownloadToUI, 
     shouldShowDownload, 
@@ -50,6 +51,7 @@ const setupIpcListeners = () => {
 
     ipcRenderer.on('download-finished', (event, data) => {
         updateConsole(`[${data.downloadId}] Finalizada`);
+        notify.success('Descarga finalizada');
         if (shouldShowDownload(data.downloadId)) {
             updateDownloadItem(data.downloadId, { state: 'COMPLETED' });
         }
@@ -61,6 +63,9 @@ const setupIpcListeners = () => {
         
         if (data.error.includes('YouTube bloqueado')) {
             updateSystemStatus('YouTube bloqueado - Actualizar yt-dlp requerido', 'error');
+            notify.error('YouTube bloqueado - Requiere actualizar yt-dlp');
+        } else {
+            notify.error(`Error en descarga: ${data.error.substring(0, 50)}...`);
         }
         
         if (shouldShowDownload(data.downloadId)) {
@@ -86,11 +91,22 @@ const setupIpcListeners = () => {
     ipcRenderer.on('playlist-expanded', (event, data) => {
         updateConsole(`Playlist expandida: ${data.videoCount} videos agregados`);
         updateSystemStatus(`${data.videoCount} videos agregados`, 'success');
+        notify.success(`Playlist procesada: ${data.videoCount} videos añadidos a la cola`);
         document.getElementById('downloadBtn').textContent = 'Procesando...';
     });
 
     ipcRenderer.on('playlist-error', (event, data) => {
         updateConsole(`Error en playlist: ${data.error}`);
+        updateSystemStatus(`Error: ${data.error}`, 'error');
+        notify.error(`Error al procesar playlist: ${data.error}`);
+        state.waitingForFirstDownload = false;
+        unlockUI();
+    });
+};
+
+module.exports = {
+    setupIpcListeners
+};
         updateSystemStatus(`Error: ${data.error}`, 'error');
         state.waitingForFirstDownload = false;
         unlockUI();

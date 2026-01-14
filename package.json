@@ -1,8 +1,8 @@
 {
-  "name": "yt-dlp-ui",
-  "version": "1.0.0",
+  "name": "amd-audio-tool",
+  "version": "1.0.1",
   "description": "Aplicación de escritorio para descargar música y videos",
-  "author": "Tu Nombre",
+  "author": "Antony Monge  Lopez",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -31,16 +31,16 @@
       "icon": "build/icon.icns"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "build/icon.png",
       "category": "AudioVideo"
     }
-  },
-  "dependencies": {
   },
   "devDependencies": {
     "electron": "^35.2.0",
     "electron-builder": "^26.4.0"
   }
 }
-

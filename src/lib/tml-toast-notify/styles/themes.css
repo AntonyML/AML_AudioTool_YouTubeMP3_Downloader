@@ -1,0 +1,43 @@
+:root {
+  --toast-bg-color: #fff;
+  --toast-text-color: #333;
+  --toast-success-color: #4caf50;
+  --toast-error-color: #f44336;
+  --toast-warning-color: #ff9800;
+  --toast-info-color: #2196f3;
+  --toast-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --toast-font-size: 14px;
+  --toast-title-weight: 600;
+  --toast-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.toast {
+  background: var(--toast-bg-color);
+  color: var(--toast-text-color);
+  box-shadow: var(--toast-box-shadow);
+  font-family: var(--toast-font-family);
+}
+
+.toast-message {
+  font-size: var(--toast-font-size);
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+/* Tipos */
+.toast.success { border-left-color: var(--toast-success-color); }
+.toast.error { border-left-color: var(--toast-error-color); }
+.toast.warning { border-left-color: var(--toast-warning-color); }
+.toast.info { border-left-color: var(--toast-info-color); }
+
+/* Icon Colors */
+.toast.success .toast-icon { color: var(--toast-success-color); }
+.toast.error .toast-icon { color: var(--toast-error-color); }
+.toast.warning .toast-icon { color: var(--toast-warning-color); }
+.toast.info .toast-icon { color: var(--toast-info-color); }
+
+/* Progress Bar Colors */
+.toast.success .toast-progress-bar { background-color: var(--toast-success-color); }
+.toast.error .toast-progress-bar { background-color: var(--toast-error-color); }
+.toast.warning .toast-progress-bar { background-color: var(--toast-warning-color); }
+.toast.info .toast-progress-bar { background-color: var(--toast-info-color); }
