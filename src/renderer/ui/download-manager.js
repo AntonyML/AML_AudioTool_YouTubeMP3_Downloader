@@ -2,6 +2,7 @@
 const state = require('../core/state');
 const { truncateUrl } = require('../utils/helpers');
 const { updatePagination } = require('./pagination');
+const { notify } = require('./notifications');
 const { CONFIG, isTerminalState } = require('../config/constants');
 
 const shouldShowDownload = (downloadId) => {
@@ -208,6 +209,13 @@ const updateEmptyState = () => {
 const clearCompleted = () => {
     const items = document.querySelectorAll('.download-item.completed, .download-item.error, .download-item.stopped, .download-item.already_exists');
     
+    if (items.length === 0) {
+        notify.info('No hay descargas finalizadas para limpiar');
+        return;
+    }
+
+    notify.success(`${items.length} descargas limpiadas del historial`);
+
     const idsToRemove = [];
     items.forEach(item => {
         const downloadId = parseInt(item.dataset.id);

@@ -1,0 +1,64 @@
+:root {
+  --toast-container-gap: 10px;
+  --toast-container-z-index: 99999;
+  --toast-padding: 12px 15px;
+  --toast-border-radius: 8px;
+  --toast-icon-size: 24px;
+}
+
+.toast-container {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: var(--toast-container-gap);
+  z-index: var(--toast-container-z-index);
+  pointer-events: none;
+  bottom: 20px;
+  right: 20px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  padding: var(--toast-padding);
+  border-radius: var(--toast-border-radius);
+  min-width: 300px;
+  max-width: 400px;
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  border-left: 4px solid transparent;
+}
+
+.toast-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--toast-icon-size);
+  height: var(--toast-icon-size);
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.toast-close {
+  margin-left: 10px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}

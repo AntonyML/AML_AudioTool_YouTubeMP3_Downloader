@@ -35,6 +35,9 @@ console.log('[APP] download-manager cargado');
 const { nextPage, previousPage } = require('./src/renderer/ui/pagination');
 console.log('[APP] pagination cargado');
 
+const { notify } = require('./src/renderer/ui/notifications');
+console.log('[APP] notifications cargado');
+
 console.log('[APP] Todos los modulos cargados exitosamente');
 
 // ==================== Inicialización ====================
@@ -48,9 +51,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!state.ffmpegAvailable) {
         updateConsole('ADVERTENCIA: FFmpeg no encontrado');
         updateSystemStatus('FFmpeg: NO DISPONIBLE', 'error');
+        notify.error('FFmpeg no encontrado. Funcionalidad limitada.');
     } else {
         updateConsole('FFmpeg disponible');
         updateSystemStatus('FFmpeg: Disponible', 'success');
+        // notify.success('Sistema listo - FFmpeg detectado');
     }
     
     updateConsole('Sistema de descargas concurrentes activo');
@@ -74,12 +79,14 @@ window.validateUrl = async () => {
     
     if (!url) {
         updateConsole('ERROR: URL vacia');
+        notify.warning('Por favor ingresa una URL');
         return;
     }
     
     const { isValid, type } = validateYouTubeUrl(url);
     if (!isValid) {
         updateConsole('ERROR: URL de YouTube invalida');
+        notify.error('URL no válida. Debe ser de YouTube.');
         return;
     }
 
@@ -88,13 +95,14 @@ window.validateUrl = async () => {
     
     document.getElementById('optionsSection').classList.remove('hidden');
     updateConsole('URL valida - Tipo: ' + type);
+    notify.success(`URL válida detectada (${type})`);
 };
 
 window.changePerformance = async (slots) => {
     const stats = await ipcRenderer.invoke('get-stats');
     
     if (stats.registry.active > 0 || stats.registry.queued > 0) {
-        alert('No puedes cambiar el rendimiento mientras hay descargas activas o en cola.\n\nEspera a que terminen todas las descargas.');
+        notify.warning('No puedes cambiar el rendimiento mientras hay descargas activas.');
         return;
     }
     
@@ -112,8 +120,10 @@ window.changePerformance = async (slots) => {
         
         updateConsole(`Rendimiento cambiado: ${slots} descargas simultaneas`);
         updateSystemStatus(`Max concurrentes: ${slots}`, 'success');
+        notify.success(`Rendimiento ajustado a nivel ${slots}`);
     } else {
         updateConsole(`ERROR: ${result.error}`);
+        notify.error(`Error al cambiar rendimiento: ${result.error}`);
     }
 };
 
@@ -136,12 +146,13 @@ window.selectFolder = async () => {
 window.startDownload = async () => {
     if (!state.currentUrl || !state.folder) {
         updateConsole('ERROR: Faltan datos');
+        notify.warning('Selecciona una carpeta de destino primero');
         return;
     }
     
     if (!state.ffmpegAvailable) {
         updateConsole('ERROR: FFmpeg requerido');
-        alert('FFmpeg no esta instalado');
+        notify.error('No se puede iniciar: FFmpeg no encontrado');
         return;
     }
 
