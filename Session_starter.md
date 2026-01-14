@@ -26,3 +26,6 @@ Optimize prompts: be specific, define output format, split tasks, provide sample
 - `npm run dev`
 - `npm test`
 - `npm install`.
+
+2026-01-14 | Session started: reviewed project structure, README, and package.json; confirmed Electron app for YouTube downloads.
+2026-01-14 | Fixed icon issue: changed build config to use icon.png for better transparency support; advised ensuring PNG is square with transparent background.
