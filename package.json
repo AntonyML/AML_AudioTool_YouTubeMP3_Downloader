@@ -24,8 +24,7 @@
     ],
     "win": {
       "target": "portable",
-      "icon": "build/icon.ico",
-      "manifest": "build/app.manifest"
+      "icon": "build/icon.png"
     },
     "mac": {
       "target": "dmg",
