@@ -1,8 +1,8 @@
 {
-  "name": "amd-audio-tool",
-  "version": "1.0.1",
-  "description": "Aplicación de escritorio para descargar música y videos",
-  "author": "Antony Monge  Lopez",
+  "name": "aml-audio-tool",
+  "version": "1.9.1",
+  "description": "Aplicación de escritorio para descargar musica de YouTube en formato MP3 con opciones avanzadas.",
+  "author": "TonyML",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",

@@ -166,7 +166,8 @@ window.startDownload = async () => {
         outputPath: state.folder,
         metadata: { 
             addedAt: new Date().toISOString(),
-            isPlaylist: state.isPlaylist
+            isPlaylist: state.isPlaylist,
+            performance: state.currentPerformance
         }
     });
 

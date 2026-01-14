@@ -207,24 +207,39 @@ const updateEmptyState = () => {
 };
 
 const clearCompleted = () => {
-    const items = document.querySelectorAll('.download-item.completed, .download-item.error, .download-item.stopped, .download-item.already_exists');
+    const idsToRemove = [];
     
-    if (items.length === 0) {
+    // Find all completed downloads from the entire list
+    for (let i = state.allDownloadIds.length - 1; i >= 0; i--) {
+        const id = state.allDownloadIds[i];
+        const download = state.downloads.get(id);
+        if (download && isTerminalState(download.currentState)) {
+            idsToRemove.push(id);
+        }
+    }
+    
+    if (idsToRemove.length === 0) {
         notify.info('No hay descargas finalizadas para limpiar');
         return;
     }
 
-    notify.success(`${items.length} descargas limpiadas del historial`);
+    notify.success(`${idsToRemove.length} descargas limpiadas del historial`);
 
-    const idsToRemove = [];
-    items.forEach(item => {
-        const downloadId = parseInt(item.dataset.id);
-        idsToRemove.push(downloadId);
-        
-        item.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => item.remove(), CONFIG.UI.ANIMATION_DURATION_MS);
+    // Animate removal for visible items
+    const visibleItemsToRemove = [];
+    idsToRemove.forEach(id => {
+        const item = document.getElementById(`download-${id}`);
+        if (item) {
+            visibleItemsToRemove.push(item);
+            item.style.animation = 'slideOut 0.3s ease-out';
+        }
     });
     
+    setTimeout(() => {
+        visibleItemsToRemove.forEach(item => item.remove());
+    }, CONFIG.UI.ANIMATION_DURATION_MS);
+    
+    // Remove from state
     setTimeout(() => {
         idsToRemove.forEach(id => {
             state.downloads.delete(id);

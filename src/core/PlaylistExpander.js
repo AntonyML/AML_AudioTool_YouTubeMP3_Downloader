@@ -8,6 +8,10 @@ class PlaylistExpander {
         this.maxPlaylistSize = maxPlaylistSize;
     }
 
+    setMaxPlaylistSize(size) {
+        this.maxPlaylistSize = size;
+    }
+
     async expandPlaylist(url) {
         return new Promise((resolve, reject) => {
             const args = [
@@ -51,7 +55,7 @@ class PlaylistExpander {
                     }
 
                     if (videos.length > this.maxPlaylistSize) {
-                        return reject(new Error(`Playlist too large: ${videos.length} videos (max ${this.maxPlaylistSize})`));
+                        return reject(new Error(`Playlist demasiado grande: ${videos.length} videos (max ${this.maxPlaylistSize})`));
                     }
 
                     resolve(videos);
