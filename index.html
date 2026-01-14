@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube MP3 Downloader</title>
+    <link rel="stylesheet" href="./src/renderer/styles/main.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header con estadísticas -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1>AML Audio Tool YouTube MP3 Downloader</h1>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Activas</span>
+                        <span class="stat-value" id="activeCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">En cola</span>
+                        <span class="stat-value" id="queueCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Slots</span>
+                        <span class="stat-value" id="slotsAvailable">20/20</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Panel de control -->
+            <aside class="control-panel">
+                <div class="input-section">
+                    <label>Rendimiento</label>
+                    <div class="performance-selector">
+                        <button class="perf-btn" data-level="5" onclick="changePerformance(5)">Bajo (5)</button>
+                        <button class="perf-btn" data-level="10" onclick="changePerformance(10)">Medio (10)</button>
+                        <button class="perf-btn" data-level="15" onclick="changePerformance(15)">Alto (15)</button>
+                        <button class="perf-btn active" data-level="20" onclick="changePerformance(20)">Ultra (20)</button>
+                    </div>
+                    <small style="color: #666; margin-top: 5px; display: block;">Ajusta según tu PC (5=vieja, 20=potente)</small>
+                </div>
+
+                <div class="input-section">
+                    <label>URL de YouTube</label>
+                    <div class="input-group">
+                        <input type="text" id="urlInput" placeholder="https://youtube.com/watch?v=...">
+                        <button id="validateBtn" onclick="validateUrl()">Validar</button>
+                    </div>
+                </div>
+
+                <div id="optionsSection" class="options-section hidden">
+                    <div class="folder-section">
+                        <label>Carpeta de destino</label>
+                        <button id="folderBtn" class="folder-btn" onclick="selectFolder()">
+                            Seleccionar Carpeta
+                        </button>
+                        <div id="folderPath" class="folder-path-display"></div>
+                    </div>
+                    
+                    <button id="downloadBtn" class="download-btn" onclick="startDownload()" disabled>
+                        Agregar a descargas
+                    </button>
+                </div>
+
+                <div class="system-info">
+                    <h3>Sistema</h3>
+                    <div id="systemStatus" class="status-list"></div>
+                </div>
+            </aside>
+
+            <!-- Área de descargas -->
+            <main class="downloads-area">
+                <div class="downloads-header">
+                    <h2>Descargas</h2>
+                    <button id="clearCompleted" class="btn-clear" onclick="clearCompleted()">
+                        Limpiar finalizadas
+                    </button>
+                </div>
+                
+                <div id="downloadsList" class="downloads-list">
+                    <div class="empty-state">
+                        <p>No hay descargas activas</p>
+                        <small>Agrega una URL para comenzar</small>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Console -->
+        <div class="console-container">
+            <div class="console-header">
+                <span>Consola</span>
+                <button onclick="clearConsole()" class="btn-clear-console">Limpiar</button>
+            </div>
+            <div class="console-content">
+                <pre id="consoleContent"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="./src/renderer/app-modular.js"></script>
+</body>
+
+</html>

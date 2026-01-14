@@ -1,0 +1,46 @@
+{
+  "name": "yt-dlp-ui",
+  "version": "1.0.0",
+  "description": "Aplicación de escritorio para descargar música y videos",
+  "author": "Tu Nombre",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.tony.ml.cr",
+    "productName": "AML Audio Tool",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "index.html",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "build/icon.png",
+      "category": "AudioVideo"
+    }
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "electron": "^35.2.0",
+    "electron-builder": "^26.4.0"
+  }
+}
+

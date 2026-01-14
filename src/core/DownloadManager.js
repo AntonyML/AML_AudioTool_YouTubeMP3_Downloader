@@ -1,0 +1,168 @@
+// DownloadManager.js - Fachada que integra todos los componentes
+// Punto de entrada único para el sistema de descargas
+
+const EventEmitter = require('events');
+const DownloadRegistry = require('./DownloadRegistry');
+const StateMachine = require('./StateMachine');
+const ResourceSemaphore = require('./ResourceSemaphore');
+const DownloadScheduler = require('./DownloadScheduler');
+const DownloadExecutor = require('./DownloadExecutor');
+const PlaylistExpander = require('./PlaylistExpander');
+const ValidationManager = require('./ValidationManager');
+
+class DownloadManager extends EventEmitter {
+    constructor(config = {}) {
+        super();
+        
+        const maxConcurrent = config.maxConcurrent || 20;
+        
+        this.registry = new DownloadRegistry();
+        this.stateMachine = new StateMachine(this.registry, this);
+        this.semaphore = new ResourceSemaphore(maxConcurrent);
+        this.executor = new DownloadExecutor(this.registry, this);
+        this.scheduler = new DownloadScheduler(
+            this.registry,
+            this.stateMachine,
+            this.semaphore,
+            this.executor,
+            this
+        );
+        this.playlistExpander = new PlaylistExpander(100);
+        this.validator = new ValidationManager();
+
+        this.setupEventForwarding();
+    }
+
+    setupEventForwarding() {
+        const events = [
+            'state-changed',
+            'download-queued',
+            'download-progress',
+            'download-finished',
+            'download-error',
+            'download-output'
+        ];
+
+        events.forEach(event => {
+            this.on(event, (data) => {
+                console.log(`[DownloadManager] ${event}:`, data);
+            });
+        });
+    }
+
+    addDownload(url, outputPath, metadata = {}) {
+        // Validaciones iniciales antes de crear la descarga
+        if (!this.validator.validateBeforeCreate(url, outputPath, metadata)) {
+            const summary = this.validator.getValidationSummary();
+            return { success: false, error: summary.errors.join('; ') };
+        }
+
+        const downloadId = this.registry.create(url, outputPath, metadata);
+        
+        this.emit('download-created', { downloadId, url, metadata });
+        
+        const result = this.scheduler.enqueue(downloadId);
+        
+        if (!result.success) {
+            this.registry.remove(downloadId);
+            return { success: false, error: result.error };
+        }
+
+        return { success: true, downloadId };
+    }
+
+    async addPlaylist(url, outputPath, metadata = {}) {
+        try {
+            this.emit('playlist-expansion-started', { url });
+            
+            const info = await this.playlistExpander.getPlaylistInfo(url);
+            
+            this.emit('playlist-info', { 
+                url, 
+                count: info.count, 
+                title: info.title 
+            });
+
+            if (info.count > 100) {
+                return { 
+                    success: false, 
+                    error: `Playlist demasiado grande: ${info.count} videos (max 100)` 
+                };
+            }
+
+            const videos = await this.playlistExpander.expandPlaylist(url);
+            
+            this.emit('playlist-expanded', { 
+                url, 
+                videoCount: videos.length 
+            });
+
+            const downloadIds = [];
+            for (const video of videos) {
+                const videoMetadata = {
+                    ...metadata,
+                    isPlaylist: false,
+                    playlistUrl: url,
+                    playlistTitle: info.title,
+                    videoTitle: video.title
+                };
+
+                const result = this.addDownload(video.url, outputPath, videoMetadata);
+                if (result.success) {
+                    downloadIds.push(result.downloadId);
+                }
+            }
+
+            return { 
+                success: true, 
+                playlistTitle: info.title,
+                videoCount: videos.length,
+                downloadIds 
+            };
+
+        } catch (error) {
+            this.emit('playlist-error', { url, error: error.message });
+            return { 
+                success: false, 
+                error: `Error expandiendo playlist: ${error.message}` 
+            };
+        }
+    }
+
+    cancelDownload(downloadId) {
+        return this.scheduler.cancel(downloadId);
+    }
+
+    getDownload(downloadId) {
+        return this.registry.get(downloadId);
+    }
+
+    getAllDownloads() {
+        return this.registry.getAll();
+    }
+
+    getStats() {
+        return {
+            registry: this.registry.getStats(),
+            queue: this.scheduler.getQueueInfo(),
+            semaphore: this.semaphore.getStats()
+        };
+    }
+
+    setMaxConcurrent(maxConcurrent) {
+        const stats = this.registry.getStats();
+        
+        if (stats.active > 0 || stats.queued > 0) {
+            throw new Error('No se puede cambiar maxConcurrent con descargas activas');
+        }
+        
+        this.semaphore.setMaxConcurrent(maxConcurrent);
+        this.emit('max-concurrent-changed', { maxConcurrent });
+    }
+
+    clear() {
+        this.registry.clear();
+    }
+}
+
+module.exports = DownloadManager;
