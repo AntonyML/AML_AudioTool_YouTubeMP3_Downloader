@@ -1,24 +1,13 @@
 # Dependencies
 node_modules/
 
-# Build Output
-dist/
-build/
-
-# Binaries and Scripts
-*.exe
-*.bat
-*.ps1
-
 # Environment
 .env
-
-# Context and Logs
-Session_starter.md
-src/core/DEBUGGING_REPORT.md
-npm-debug.log
-error.log
 
 # OS generated files
 thumbs.db
 .DS_Store
+
+# Large Files (>100MB)
+ffmpeg.exe
+dist/win-unpacked/YT-DLP UI.exe
