@@ -156,7 +156,13 @@ class DownloadScheduler {
             return result;
         }
 
-        return { success: false, error: 'Cannot cancel in current state' };
+        // Permitir cancelar descargas en otros estados que no sean terminales
+        if (task.state === 'CREATED') {
+            this.stateMachine.transition(downloadId, 'STOPPED');
+            return { success: true };
+        }
+
+        return { success: false, error: `Cannot cancel in current state: ${task.state}` };
     }
 
     getQueueInfo() {

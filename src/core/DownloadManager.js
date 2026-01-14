@@ -64,10 +64,12 @@ class DownloadManager extends EventEmitter {
         const result = this.scheduler.enqueue(downloadId);
         
         if (!result.success) {
+            console.error(`[DownloadManager] Failed to enqueue download ${downloadId}:`, result.error);
             this.registry.remove(downloadId);
             return { success: false, error: result.error };
         }
 
+        console.log(`[DownloadManager] Successfully enqueued download ${downloadId}`);
         return { success: true, downloadId };
     }
 

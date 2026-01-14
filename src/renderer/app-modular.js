@@ -183,6 +183,7 @@ window.startDownload = async () => {
         state.currentUrl = null;
         
         updateStats();
+        unlockUI(); // Desbloquear UI después de agregar exitosamente
     } else {
         updateConsole(`ERROR: ${result.error}`);
         state.waitingForFirstDownload = false;
