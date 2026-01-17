@@ -13,6 +13,15 @@ if %errorlevel% neq 0 (
 )
 echo.
 
+echo Actualizando version...
+call node version-bump.js
+if %errorlevel% neq 0 (
+    echo Error al actualizar la version
+    pause
+    exit /b %errorlevel%
+)
+echo.
+
 echo Generando ejecutable...
 call npm run build:win
 if %errorlevel% neq 0 (
