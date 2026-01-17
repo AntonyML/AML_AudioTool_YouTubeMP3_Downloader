@@ -19,6 +19,17 @@ const setupIpcListeners = () => {
         });
     });
 
+    ipcRenderer.on('download-queued', (event, data) => {
+        const downloadData = state.downloads.get(data.downloadId);
+        if (downloadData) {
+            downloadData.currentState = 'QUEUED';
+        }
+        
+        if (shouldShowDownload(data.downloadId)) {
+            updateDownloadItem(data.downloadId, { state: 'QUEUED' });
+        }
+    });
+
     ipcRenderer.on('download-state-changed', (event, data) => {
         updateConsole(`[${data.downloadId}] ${data.fromState} -> ${data.toState}`);
         

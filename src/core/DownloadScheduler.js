@@ -24,6 +24,7 @@ class DownloadScheduler {
                 
                 if (activeDownloads.length === 0) {
                     // Playlist terminó, activar la siguiente
+                    console.log(`[DownloadScheduler] Playlist ${this.currentPlaylist.id} finished, activating next`);
                     this.currentPlaylist = null;
                 }
             }
@@ -31,16 +32,33 @@ class DownloadScheduler {
             this.processQueue();
         });
         this.emitter.on('slot-available', () => this.processQueue());
+        
+        // Forzar procesamiento inicial después de un delay
+        setTimeout(() => this.processQueue(), 100);
+        
+        // Verificar periódicamente si hay descargas atascadas
+        setInterval(() => {
+            const queuedTasks = this.registry.getByState('QUEUED');
+            if (queuedTasks.length > 0 && !this.running) {
+                console.log(`[DownloadScheduler] Found ${queuedTasks.length} queued tasks, forcing processQueue`);
+                this.processQueue();
+            }
+        }, 5000);
     }
 
     enqueue(downloadId) {
+        console.log(`[DownloadScheduler] Attempting to enqueue download ${downloadId}`);
+        
         const result = this.stateMachine.transition(downloadId, 'QUEUED');
         if (!result.success) {
+            console.error(`[DownloadScheduler] Failed to transition ${downloadId} to QUEUED:`, result.error);
             return result;
         }
 
         const task = this.registry.get(downloadId);
         const playlistId = task.metadata?.playlistId || `single_${downloadId}`;
+        
+        console.log(`[DownloadScheduler] Download ${downloadId} belongs to playlist ${playlistId}`);
         
         // Agregar a la cola de playlists si no existe
         if (!this.activePlaylists.find(p => p.id === playlistId)) {
@@ -48,11 +66,14 @@ class DownloadScheduler {
                 id: playlistId,
                 downloads: []
             });
+            console.log(`[DownloadScheduler] Created new playlist ${playlistId}`);
         }
         
         // Agregar la descarga a su playlist
         const playlist = this.activePlaylists.find(p => p.id === playlistId);
         playlist.downloads.push(downloadId);
+        
+        console.log(`[DownloadScheduler] Added download ${downloadId} to playlist ${playlistId}. Total downloads in playlist: ${playlist.downloads.length}`);
 
         this.emitter.emit('download-queued', { downloadId });
         
@@ -65,35 +86,47 @@ class DownloadScheduler {
         if (this.running) return;
         this.running = true;
 
+        console.log(`[DownloadScheduler] Processing queue. Active playlists: ${this.activePlaylists.length}, Current playlist: ${this.currentPlaylist ? this.currentPlaylist.id : 'none'}`);
+
         try {
             while (true) {
                 const available = this.semaphore.getAvailable();
+                console.log(`[DownloadScheduler] Available slots: ${available}`);
                 if (available === 0) break;
 
                 // Si no hay playlist activa, activar la primera
                 if (!this.currentPlaylist && this.activePlaylists.length > 0) {
                     this.currentPlaylist = this.activePlaylists.shift();
+                    console.log(`[DownloadScheduler] Activated playlist ${this.currentPlaylist.id} with ${this.currentPlaylist.downloads.length} downloads`);
                 }
 
-                if (!this.currentPlaylist) break;
+                if (!this.currentPlaylist) {
+                    console.log(`[DownloadScheduler] No active playlist, breaking`);
+                    break;
+                }
 
                 // Solo procesar descargas de la playlist activa
                 const queuedTasks = this.currentPlaylist.downloads
                     .map(id => this.registry.get(id))
                     .filter(task => task && task.state === 'QUEUED');
 
+                console.log(`[DownloadScheduler] Found ${queuedTasks.length} queued tasks in current playlist`);
+
                 if (queuedTasks.length === 0) {
                     // Si no hay más descargas en esta playlist, pasar a la siguiente
+                    console.log(`[DownloadScheduler] No more queued tasks in playlist ${this.currentPlaylist.id}, deactivating`);
                     this.currentPlaylist = null;
                     continue;
                 }
 
                 const nextTask = queuedTasks[0];
+                console.log(`[DownloadScheduler] Starting download ${nextTask.id}`);
                 
                 await this.semaphore.acquire();
                 
                 const transitionResult = this.stateMachine.transition(nextTask.id, 'DOWNLOADING');
                 if (!transitionResult.success) {
+                    console.error(`[DownloadScheduler] Failed to transition ${nextTask.id} to DOWNLOADING:`, transitionResult.error);
                     this.semaphore.release();
                     continue;
                 }
