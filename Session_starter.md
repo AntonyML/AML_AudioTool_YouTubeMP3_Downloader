@@ -32,3 +32,4 @@ Optimize prompts: be specific, define output format, split tasks, provide sample
 2026-01-14 | Fixed build error: removed invalid 'manifest' property from win config; electron-builder auto-uses build/app.manifest.
 2026-01-17 | Improved .gitignore: added comprehensive ignores for Node.js/Electron project, including dist/, logs, IDE files, OS files, and binaries.
 2026-01-17 | Cleaned Git repo: removed dist/ from tracking and history to eliminate large build files; pushed changes to remote dev branch.
+2026-01-17 | Added automatic version bumping: created version-bump.js to increment patch version; updated build-exe.bat to run it before building.
