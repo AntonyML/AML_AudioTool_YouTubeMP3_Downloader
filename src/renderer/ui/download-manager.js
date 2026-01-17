@@ -11,11 +11,15 @@ const shouldShowDownload = (downloadId) => {
 };
 
 const addDownloadToUI = (downloadId, url, metadata) => {
+    // Obtener el estado real de la descarga desde el registry (a través de IPC)
+    // Por ahora, asumimos QUEUED ya que se encola antes de crear en UI
+    const currentState = 'QUEUED';
+    
     state.downloads.set(downloadId, {
         url,
         metadata,
         startTime: Date.now(),
-        currentState: 'CREATED',
+        currentState: currentState,
         currentProgress: 0
     });
     
@@ -24,7 +28,7 @@ const addDownloadToUI = (downloadId, url, metadata) => {
     if (shouldShowDownload(downloadId)) {
         createDownloadItem(downloadId, {
             url: metadata?.videoTitle || url,
-            state: 'CREATED',
+            state: currentState,
             progress: 0
         });
     }

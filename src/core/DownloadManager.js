@@ -59,8 +59,6 @@ class DownloadManager extends EventEmitter {
 
         const downloadId = this.registry.create(url, outputPath, metadata);
         
-        this.emit('download-created', { downloadId, url, metadata });
-        
         const result = this.scheduler.enqueue(downloadId);
         
         if (!result.success) {
@@ -70,6 +68,9 @@ class DownloadManager extends EventEmitter {
         }
 
         console.log(`[DownloadManager] Successfully enqueued download ${downloadId}`);
+        
+        this.emit('download-created', { downloadId, url, metadata });
+        
         return { success: true, downloadId };
     }
 
