@@ -30,3 +30,5 @@ Optimize prompts: be specific, define output format, split tasks, provide sample
 2026-01-14 | Session started: reviewed project structure, README, and package.json; confirmed Electron app for YouTube downloads.
 2026-01-14 | Fixed icon issue: changed build config to use icon.png for better transparency support; advised ensuring PNG is square with transparent background.
 2026-01-14 | Fixed build error: removed invalid 'manifest' property from win config; electron-builder auto-uses build/app.manifest.
+2026-01-17 | Improved .gitignore: added comprehensive ignores for Node.js/Electron project, including dist/, logs, IDE files, OS files, and binaries.
+2026-01-17 | Cleaned Git repo: removed dist/ from tracking and history to eliminate large build files; pushed changes to remote dev branch.
