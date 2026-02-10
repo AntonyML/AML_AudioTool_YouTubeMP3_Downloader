@@ -1,6 +1,6 @@
 {
   "name": "aml-audio-tool",
-  "version": "1.9.7",
+  "version": "1.9.11",
   "description": "Aplicación de escritorio para descargar musica de YouTube en formato MP3 con opciones avanzadas.",
   "author": "TonyML",
   "main": "src/main.js",

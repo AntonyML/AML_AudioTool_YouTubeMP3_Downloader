@@ -88,5 +88,5 @@ temp/
 .tmp/
 
 # Large binaries (if downloaded)
-ffmpeg.exe
-yt-dlp.exe
+#ffmpeg.exe
+#yt-dlp.exe

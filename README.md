@@ -5,7 +5,7 @@ AML Audio Tool is a professional desktop application designed for efficient audi
 ## Features
 
 - **High-Quality Downloads:** Support for various audio and video formats.
-- **Playlist Support:** Intelligent handling of YouTube playlists for batch downloading.
+- **Playlist Support:** Intelligent handling of YouTube,SoundCloud playlists for batch downloading.
 - **Concurrent Download Manager:** Optimized performance with configurable concurrent download limits (default: 20).
 - **Resource Monitoring:** Real-time system status and FFmpeg availability checks.
 - **Cross-Platform:** Compatible with Windows, macOS, and Linux.
