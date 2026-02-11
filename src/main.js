@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const DownloadManager = require('./core/DownloadManager');
+const APP_CONFIG = require('./core/domain/app-config');
 
 let win;
 let downloadManager;
@@ -17,7 +18,7 @@ function createWindow() {
 
     win.loadFile('index.html');
     
-    downloadManager = new DownloadManager({ maxConcurrent: 20 });
+    downloadManager = new DownloadManager({ maxConcurrent: APP_CONFIG.MAX_CONCURRENT_DOWNLOADS });
     setupDownloadEvents();
 }
 

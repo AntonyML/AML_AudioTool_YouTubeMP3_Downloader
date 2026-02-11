@@ -1,13 +1,28 @@
 // Utilidades de validación
-const validateYouTubeUrl = (url) => {
+const REGEX_PATTERNS = require('../../core/domain/regex-patterns');
+
+const validateUrl = (url) => {
     const patterns = {
-        video: /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/,
-        playlist: /^.*(youtu.be\/|list=)([^#\&\?]*).*/,
-        channel: /^.*(youtube.com\/channel\/|user\/)([^#\&\?]*).*/,
+        youtube: {
+            video: REGEX_PATTERNS.URL.YOUTUBE.VIDEO,
+            playlist: REGEX_PATTERNS.URL.YOUTUBE.PLAYLIST,
+            channel: REGEX_PATTERNS.URL.YOUTUBE.CHANNEL,
+        },
+        soundcloud: REGEX_PATTERNS.URL.SOUNDCLOUD
     };
 
-    const type = Object.entries(patterns).find(([_, regex]) => regex.test(url))?.[0];
-    return { isValid: !!type, type };
+    // Check YouTube
+    const youtubeType = Object.entries(patterns.youtube).find(([_, regex]) => regex.test(url))?.[0];
+    if (youtubeType) {
+        return { isValid: true, type: youtubeType, platform: 'youtube' };
+    }
+
+    // Check SoundCloud
+    if (patterns.soundcloud.test(url)) {
+        return { isValid: true, type: 'track', platform: 'soundcloud' };
+    }
+
+    return { isValid: false, type: null, platform: null };
 };
 
 const checkFFmpeg = async () => {
@@ -20,6 +35,6 @@ const checkFFmpeg = async () => {
 };
 
 module.exports = {
-    validateYouTubeUrl,
+    validateUrl,
     checkFFmpeg
 };

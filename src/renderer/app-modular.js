@@ -16,7 +16,7 @@ const { setupIpcListeners } = require('./src/renderer/core/ipc-handlers');
 console.log('[APP] ipc-handlers cargado');
 
 // Utils
-const { validateYouTubeUrl, checkFFmpeg } = require('./src/renderer/utils/validators');
+const { validateUrl, checkFFmpeg } = require('./src/renderer/utils/validators');
 console.log('[APP] validators cargado');
 
 // UI
@@ -67,6 +67,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     startStatsPolling();
 });
 
+// ==================== Funciones Auxiliares ====================
+const showSoundCloudConfirmation = async () => {
+    return new Promise((resolve) => {
+        const confirmed = confirm('Esta URL es de SoundCloud. ¿Estás seguro de que quieres descargar desde SoundCloud?');
+        resolve(confirmed);
+    });
+};
+
 // ==================== Handlers Globales ====================
 console.log('[APP] Definiendo window.validateUrl');
 window.validateUrl = async () => {
@@ -83,19 +91,29 @@ window.validateUrl = async () => {
         return;
     }
     
-    const { isValid, type } = validateYouTubeUrl(url);
+    const { isValid, type, platform } = validateUrl(url);
     if (!isValid) {
-        updateConsole('ERROR: URL de YouTube invalida');
-        notify.error('URL no válida. Debe ser de YouTube.');
+        updateConsole('ERROR: URL invalida');
+        notify.error('URL no válida. Debe ser de YouTube o SoundCloud.');
         return;
+    }
+
+    // Si es SoundCloud, pedir confirmación
+    if (platform === 'soundcloud') {
+        const confirmed = await showSoundCloudConfirmation();
+        if (!confirmed) {
+            updateConsole('Descarga de SoundCloud cancelada por el usuario');
+            notify.info('Descarga cancelada');
+            return;
+        }
     }
 
     state.currentUrl = url;
     state.isPlaylist = type === 'playlist';
     
     document.getElementById('optionsSection').classList.remove('hidden');
-    updateConsole('URL valida - Tipo: ' + type);
-    notify.success(`URL válida detectada (${type})`);
+    updateConsole('URL valida - Tipo: ' + type + ' - Plataforma: ' + platform);
+    notify.success(`URL válida detectada (${type} en ${platform})`);
 };
 
 window.changePerformance = async (slots) => {

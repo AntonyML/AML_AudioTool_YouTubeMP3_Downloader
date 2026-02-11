@@ -9,12 +9,13 @@ const DownloadScheduler = require('./DownloadScheduler');
 const DownloadExecutor = require('./DownloadExecutor');
 const PlaylistExpander = require('./PlaylistExpander');
 const ValidationManager = require('./ValidationManager');
+const APP_CONFIG = require('./domain/app-config');
 
 class DownloadManager extends EventEmitter {
     constructor(config = {}) {
         super();
         
-        const maxConcurrent = config.maxConcurrent || 20;
+        const maxConcurrent = config.maxConcurrent || APP_CONFIG.MAX_CONCURRENT_DOWNLOADS;
         
         this.registry = new DownloadRegistry();
         this.stateMachine = new StateMachine(this.registry, this);
