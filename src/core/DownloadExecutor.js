@@ -17,8 +17,8 @@ class DownloadExecutor {
     }
 
     buildOutputTemplate(outputPath) {
-        // Delegar a DownloadPathResolver para CWD teleport
-        return this.pathResolver.resolveOutputTemplate(outputPath);
+        // Usar ruta completa para evitar problemas con CWD
+        return path.join(outputPath, this.pathResolver.outputTemplate);
     }
 
     buildDownloadArgs(outputTemplate, ffmpegPath, url, metadata) {
@@ -70,6 +70,11 @@ class DownloadExecutor {
             throw new Error(errorMessage);
         }
 
+        // Asegurar que el directorio de salida existe
+        if (!fs.existsSync(task.outputPath)) {
+            fs.mkdirSync(task.outputPath, { recursive: true });
+        }
+
         // Si la validación marcó como ALREADY_EXISTS, resolver exitosamente
         if (task.state === 'ALREADY_EXISTS') {
             this.emitter.emit('download-progress', {
@@ -85,8 +90,7 @@ class DownloadExecutor {
             const args = this.buildDownloadArgs(outputTemplate, ffmpegPath, task.url, task.metadata);
 
             const ytdlp = spawn('yt-dlp', args, {
-                stdio: ['ignore', 'pipe', 'pipe'],
-                cwd: task.outputPath  // CWD teleport: ejecuta en la carpeta destino
+                stdio: ['ignore', 'pipe', 'pipe']
             });
 
             this.registry.setProcess(downloadId, ytdlp);
