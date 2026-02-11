@@ -1,14 +1,14 @@
 // Utilidades de validación
-const REGEX_PATTERNS = require('../../core/domain/regex-patterns');
+// Nota: Las regex se definen aquí porque el renderer no puede acceder a archivos del core
 
 const validateUrl = (url) => {
     const patterns = {
         youtube: {
-            video: REGEX_PATTERNS.URL.YOUTUBE.VIDEO,
-            playlist: REGEX_PATTERNS.URL.YOUTUBE.PLAYLIST,
-            channel: REGEX_PATTERNS.URL.YOUTUBE.CHANNEL,
+            video: /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/,
+            playlist: /^.*(youtu.be\/|list=)([^#\&\?]*).*/,
+            channel: /^.*(youtube.com\/channel\/|user\/)([^#\&\?]*).*/,
         },
-        soundcloud: REGEX_PATTERNS.URL.SOUNDCLOUD
+        soundcloud: /^https?:\/\/(www\.)?soundcloud\.com\//
     };
 
     // Check YouTube

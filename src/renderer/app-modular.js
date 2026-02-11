@@ -65,6 +65,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     updateStats();
     startStatsPolling();
+    
+    // Habilitar UI al finalizar inicialización
+    unlockUI();
 });
 
 // ==================== Funciones Auxiliares ====================
@@ -78,43 +81,53 @@ const showSoundCloudConfirmation = async () => {
 // ==================== Handlers Globales ====================
 console.log('[APP] Definiendo window.validateUrl');
 window.validateUrl = async () => {
-    console.log('[VALIDATE] Funcion llamada');
-    const urlInput = document.getElementById('urlInput');
-    const url = urlInput.value.trim();
-    
-    console.log('[VALIDATE] URL:', url);
-    updateConsole('Validando URL: ' + url);
-    
-    if (!url) {
-        updateConsole('ERROR: URL vacia');
-        notify.warning('Por favor ingresa una URL');
-        return;
-    }
-    
-    const { isValid, type, platform } = validateUrl(url);
-    if (!isValid) {
-        updateConsole('ERROR: URL invalida');
-        notify.error('URL no válida. Debe ser de YouTube o SoundCloud.');
-        return;
-    }
-
-    // Si es SoundCloud, pedir confirmación
-    if (platform === 'soundcloud') {
-        const confirmed = await showSoundCloudConfirmation();
-        if (!confirmed) {
-            updateConsole('Descarga de SoundCloud cancelada por el usuario');
-            notify.info('Descarga cancelada');
+    try {
+        const urlInput = document.getElementById('urlInput');
+        if (!urlInput) {
+            console.error('[VALIDATE] urlInput no encontrado');
             return;
         }
-    }
+        
+        const url = urlInput.value.trim();
+        updateConsole('Validando URL: ' + url);
+        
+        if (!url) {
+            updateConsole('ERROR: URL vacia');
+            notify.warning('Por favor ingresa una URL');
+            return;
+        }
+        
+        const { isValid, type, platform } = validateUrl(url);
+        if (!isValid) {
+            updateConsole('ERROR: URL invalida');
+            notify.error('URL no válida. Debe ser de YouTube o SoundCloud.');
+            return;
+        }
 
-    state.currentUrl = url;
-    state.isPlaylist = type === 'playlist';
-    
-    document.getElementById('optionsSection').classList.remove('hidden');
-    updateConsole('URL valida - Tipo: ' + type + ' - Plataforma: ' + platform);
-    notify.success(`URL válida detectada (${type} en ${platform})`);
+        // Si es SoundCloud, pedir confirmación
+        if (platform === 'soundcloud') {
+            const confirmed = await showSoundCloudConfirmation();
+            if (!confirmed) {
+                updateConsole('Descarga de SoundCloud cancelada por el usuario');
+                notify.info('Descarga cancelada');
+                return;
+            }
+        }
+
+        state.currentUrl = url;
+        state.isPlaylist = type === 'playlist';
+        
+        document.getElementById('optionsSection').classList.remove('hidden');
+        updateConsole('URL valida - Tipo: ' + type + ' - Plataforma: ' + platform);
+        notify.success(`URL válida detectada (${type} en ${platform})`);
+    } catch (error) {
+        console.error('[VALIDATE] Error:', error);
+        updateConsole('ERROR: ' + error.message);
+        notify.error('Error al validar URL: ' + error.message);
+    }
 };
+
+console.log('[APP] window.validateUrl definido:', typeof window.validateUrl);
 
 window.changePerformance = async (slots) => {
     const stats = await ipcRenderer.invoke('get-stats');
