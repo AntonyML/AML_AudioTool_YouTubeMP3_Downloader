@@ -5,37 +5,37 @@ const { ipcRenderer } = require('electron');
 console.log('[APP] ipcRenderer cargado');
 
 // Config
-const { CONFIG } = require('./src/renderer/config/constants');
+const { CONFIG } = require('./config/constants');
 console.log('[APP] CONFIG cargado');
 
 // Core
-const state = require('./src/renderer/core/state');
+const state = require('./core/state');
 console.log('[APP] state cargado');
 
-const { setupIpcListeners } = require('./src/renderer/core/ipc-handlers');
+const { setupIpcListeners } = require('./core/ipc-handlers');
 console.log('[APP] ipc-handlers cargado');
 
 // Utils
-const { validateUrl, checkFFmpeg } = require('./src/renderer/utils/validators');
+const { validateUrl, checkFFmpeg } = require('./utils/validators');
 console.log('[APP] validators cargado');
 
 // UI
-const { updateConsole, clearConsole, updateSystemStatus } = require('./src/renderer/ui/console');
+const { updateConsole, clearConsole, updateSystemStatus } = require('./ui/console');
 console.log('[APP] console cargado');
 
-const { updateStats, startStatsPolling } = require('./src/renderer/ui/stats');
+const { updateStats, startStatsPolling } = require('./ui/stats');
 console.log('[APP] stats cargado');
 
-const { lockUI, unlockUI } = require('./src/renderer/ui/ui-controls');
+const { lockUI, unlockUI } = require('./ui/ui-controls');
 console.log('[APP] ui-controls cargado');
 
-const { clearCompleted } = require('./src/renderer/ui/download-manager');
+const { clearCompleted } = require('./ui/download-manager');
 console.log('[APP] download-manager cargado');
 
-const { nextPage, previousPage } = require('./src/renderer/ui/pagination');
+const { nextPage, previousPage } = require('./ui/pagination');
 console.log('[APP] pagination cargado');
 
-const { notify } = require('./src/renderer/ui/notifications');
+const { notify } = require('./ui/notifications');
 console.log('[APP] notifications cargado');
 
 console.log('[APP] Todos los modulos cargados exitosamente');
