@@ -3,11 +3,12 @@
 
 const path = require('path');
 const fs = require('fs');
+const APP_CONFIG = require('./domain/app-config');
 
 class DownloadPathResolver {
     constructor() {
         // Configuración del template de salida
-        this.outputTemplate = '%(title).80s.%(ext)s';
+        this.outputTemplate = APP_CONFIG.OUTPUT_TEMPLATE;
     }
 
     /**

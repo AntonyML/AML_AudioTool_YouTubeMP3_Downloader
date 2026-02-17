@@ -5,6 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const dns = require('dns');
 const { execSync } = require('child_process');
+const ERROR_MESSAGES = require('./domain/error-messages');
+const REGEX_PATTERNS = require('./domain/regex-patterns');
+const APP_CONFIG = require('./domain/app-config');
 
 class ValidationManager {
     constructor() {
@@ -19,7 +22,7 @@ class ValidationManager {
         return new Promise((resolve) => {
             dns.lookup('google.com', (err) => {
                 if (err && err.code === 'ENOTFOUND') {
-                    this.errors.push('No hay conexión a internet');
+                    this.errors.push(ERROR_MESSAGES.NO_INTERNET_CONNECTION);
                     resolve(false);
                 } else {
                     resolve(true);
@@ -36,8 +39,8 @@ class ValidationManager {
         // Windows MAX_PATH es 260 standard.
         // Convertimos a advertencia. Node.js soporta long paths usando prefijo \\?\,
         // pero algunas herramientas externas podrian fallar.
-        if (outputPath.length > 220) {
-            this.warnings.push('La ruta es muy larga. Se usara soporte extendido de Windows.');
+        if (outputPath.length > APP_CONFIG.MAX_PATH_LENGTH_WARNING) {
+            this.warnings.push(ERROR_MESSAGES.PATH_TOO_LONG);
             return true;
         }
         return true;
@@ -145,7 +148,7 @@ class ValidationManager {
      */
     validateFfmpegExists(ffmpegPath) {
         if (!fs.existsSync(ffmpegPath)) {
-            this.errors.push(`ffmpeg.exe no encontrado en: ${ffmpegPath}`);
+            this.errors.push(`${ERROR_MESSAGES.FFMPEG_NOT_FOUND}: ${ffmpegPath}`);
             return false;
         }
         return true;
@@ -161,7 +164,7 @@ class ValidationManager {
             // Se validará dinámicamente al intentar ejecutar
             return true;
         } catch (error) {
-            this.errors.push('yt-dlp no está disponible en el PATH del sistema');
+            this.errors.push(ERROR_MESSAGES.YTDLP_NOT_AVAILABLE);
             return false;
         }
     }
@@ -171,13 +174,15 @@ class ValidationManager {
      */
     validateUrl(url) {
         if (!url) {
-            this.errors.push('URL no especificada');
+            this.errors.push(ERROR_MESSAGES.URL_NOT_SPECIFIED);
             return false;
         }
 
-        const youtubeRegex = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|music\.youtube\.com\/watch\?v=)/;
-        if (!youtubeRegex.test(url)) {
-            this.errors.push('URL no es una URL de YouTube válida');
+        const youtubeRegex = new RegExp(REGEX_PATTERNS.URL.YOUTUBE.VIDEO.source + '|' + REGEX_PATTERNS.URL.YOUTUBE.PLAYLIST.source + '|' + REGEX_PATTERNS.URL.YOUTUBE.MUSIC.source);
+        const soundcloudRegex = REGEX_PATTERNS.URL.SOUNDCLOUD;
+
+        if (!youtubeRegex.test(url) && !soundcloudRegex.test(url)) {
+            this.errors.push(ERROR_MESSAGES.INVALID_URL);
             return false;
         }
 
@@ -197,7 +202,7 @@ class ValidationManager {
     /**
      * Valida espacio disponible en disco
      */
-    validateDiskSpace(outputPath, minSpaceMB = 100) {
+    validateDiskSpace(outputPath, minSpaceMB = APP_CONFIG.MIN_DISK_SPACE_MB) {
         try {
             // Obtener información del disco
             const drive = outputPath.substring(0, 3); // e.g., "C:\"
@@ -222,7 +227,7 @@ class ValidationManager {
         const duplicate = activeDownloads.find(d => d.url === url && d.id !== currentDownloadId);
 
         if (duplicate) {
-            this.errors.push('Ya hay una descarga activa para esta URL');
+            this.errors.push(ERROR_MESSAGES.DUPLICATE_DOWNLOAD);
             return false;
         }
         return true;
@@ -244,7 +249,7 @@ class ValidationManager {
             if (predictedName && existingFiles.includes(predictedName.replace('.mp3', ''))) {
                 // Marcar como ya existente
                 registry.updateState(downloadId, 'ALREADY_EXISTS');
-                this.warnings.push(`Archivo ya existe: ${predictedName}`);
+                this.warnings.push(`${ERROR_MESSAGES.FILE_ALREADY_EXISTS}: ${predictedName}`);
                 return false; // No ejecutar descarga
             }
         }

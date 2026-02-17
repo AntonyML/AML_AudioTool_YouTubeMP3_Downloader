@@ -6,6 +6,8 @@ const path = require('path');
 const fs = require('fs');
 const DownloadPathResolver = require('./DownloadPathResolver');
 const ValidationManager = require('./ValidationManager');
+const YTDLP_OPTIONS = require('./domain/yt-dlp-options');
+const ERROR_MESSAGES = require('./domain/error-messages');
 
 class DownloadExecutor {
     constructor(registry, eventEmitter) {
@@ -17,36 +19,36 @@ class DownloadExecutor {
     }
 
     buildOutputTemplate(outputPath) {
-        // Delegar a DownloadPathResolver para CWD teleport
-        return this.pathResolver.resolveOutputTemplate(outputPath);
+        // Usar ruta completa para evitar problemas con CWD
+        return path.join(outputPath, this.pathResolver.outputTemplate);
     }
 
     buildDownloadArgs(outputTemplate, ffmpegPath, url, metadata) {
         const args = [
-            '-f', 'bestaudio/best',
-            '-x',
-            '--audio-format', 'mp3',
-            '--audio-quality', '0',
-            '--restrict-filenames',
-            '--trim-filenames', '100',
-            '--newline',
-            '--no-mtime',
-            '--windows-filenames',
-            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            '--extractor-args', 'youtube:player_client=android,web',
-            '--no-check-certificate',
-            '--prefer-free-formats',
-            '--no-warnings',
-            '-o', outputTemplate,
+            YTDLP_OPTIONS.FORMAT.flag, YTDLP_OPTIONS.FORMAT.value,
+            YTDLP_OPTIONS.EXTRACT_AUDIO,
+            YTDLP_OPTIONS.AUDIO_FORMAT.flag, YTDLP_OPTIONS.AUDIO_FORMAT.value,
+            YTDLP_OPTIONS.AUDIO_QUALITY.flag, YTDLP_OPTIONS.AUDIO_QUALITY.value,
+            YTDLP_OPTIONS.RESTRICT_FILENAMES,
+            YTDLP_OPTIONS.TRIM_FILENAMES.flag, YTDLP_OPTIONS.TRIM_FILENAMES.value,
+            YTDLP_OPTIONS.NEWLINE,
+            YTDLP_OPTIONS.NO_MTIME,
+            YTDLP_OPTIONS.WINDOWS_FILENAMES,
+            YTDLP_OPTIONS.USER_AGENT.flag, YTDLP_OPTIONS.USER_AGENT.value,
+            YTDLP_OPTIONS.EXTRACTOR_ARGS.flag, YTDLP_OPTIONS.EXTRACTOR_ARGS.value,
+            YTDLP_OPTIONS.NO_CHECK_CERTIFICATE,
+            YTDLP_OPTIONS.PREFER_FREE_FORMATS,
+            YTDLP_OPTIONS.NO_WARNINGS,
+            YTDLP_OPTIONS.OUTPUT_TEMPLATE.flag, outputTemplate,
             url
         ];
-        
+
         if (fs.existsSync(ffmpegPath)) {
-            args.splice(8, 0, '--ffmpeg-location', ffmpegPath);
+            args.splice(8, 0, YTDLP_OPTIONS.FFMPEG_LOCATION.flag, ffmpegPath);
         }
-        
+
         if (metadata && !metadata.isPlaylist) {
-            args.push('--no-playlist');
+            args.push(YTDLP_OPTIONS.NO_PLAYLIST);
         }
         
         return args;
@@ -55,7 +57,7 @@ class DownloadExecutor {
     async execute(downloadId) {
         const task = this.registry.get(downloadId);
         if (!task) {
-            throw new Error('Download not found');
+            throw new Error(ERROR_MESSAGES.TASK_NOT_FOUND);
         }
 
         // Validaciones antes de ejecutar
@@ -68,6 +70,11 @@ class DownloadExecutor {
                 error: errorMessage
             });
             throw new Error(errorMessage);
+        }
+
+        // Asegurar que el directorio de salida existe
+        if (!fs.existsSync(task.outputPath)) {
+            fs.mkdirSync(task.outputPath, { recursive: true });
         }
 
         // Si la validación marcó como ALREADY_EXISTS, resolver exitosamente
@@ -85,8 +92,7 @@ class DownloadExecutor {
             const args = this.buildDownloadArgs(outputTemplate, ffmpegPath, task.url, task.metadata);
 
             const ytdlp = spawn('yt-dlp', args, {
-                stdio: ['ignore', 'pipe', 'pipe'],
-                cwd: task.outputPath  // CWD teleport: ejecuta en la carpeta destino
+                stdio: ['ignore', 'pipe', 'pipe']
             });
 
             this.registry.setProcess(downloadId, ytdlp);
