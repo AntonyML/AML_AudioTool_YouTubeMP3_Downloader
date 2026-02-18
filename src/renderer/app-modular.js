@@ -39,6 +39,9 @@ try {
     const { notify } = require('./src/renderer/ui/notifications');
     console.log('[APP] notifications cargado');
 
+    const { initSlimMenu } = require('./src/renderer/ui/slim-menu');
+    console.log('[APP] slim-menu cargado');
+
     console.log('[APP] Todos los modulos cargados exitosamente');
 
     // ==================== Handlers Globales ====================
@@ -117,6 +120,9 @@ try {
         
         updateStats();
         startStatsPolling();
+
+        // Inicializar menú izquierdo (slim) — componente de depuración
+        initSlimMenu({ title: 'Debug: Menú Izquierdo', subtitle: 'Subtítulo de prueba' });
         
         // Habilitar UI al finalizar inicialización
         unlockUI();
