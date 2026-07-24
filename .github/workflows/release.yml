@@ -1,0 +1,227 @@
+name: 🚀 Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión semver (ej: 1.1.0)'
+        required: true
+        type: string
+      prerelease:
+        description: '¿Es pre-release?'
+        type: boolean
+        default: false
+
+# Permisos necesarios para crear releases y etiquetas
+permissions:
+  contents: write
+  discussions: write
+
+jobs:
+  # ──────────────────────────────────────────────
+  # PRE-RELEASE: Extraer / armar la información de versión
+  # ──────────────────────────────────────────────
+  prepare:
+    name: 📋 Prepare Release Info
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      channel: ${{ steps.resolve.outputs.channel }}
+      is_prerelease: ${{ steps.resolve.outputs.is_prerelease }}
+      release_branch: ${{ steps.resolve.outputs.release_branch }}
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📐 Resolve version & tag info
+        id: resolve
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # ── Modo etiqueta: usar la etiqueta tal cual ──
+            TAG="${{ github.ref_name }}"
+            VERSION="${TAG#v}"                        # quita la v inicial
+            echo "tag=${TAG}"                   >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}"           >> "$GITHUB_OUTPUT"
+          else
+            # ── Modo manual: usar el input del usuario ──
+            VERSION="${{ github.event.inputs.version }}"
+            TAG="v${VERSION}"
+            echo "tag=${TAG}"                   >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}"           >> "$GITHUB_OUTPUT"
+          fi
+
+          # Determinar si es pre-release
+          if [[ "${VERSION}" == *-* ]]; then
+            echo "is_prerelease=true"           >> "$GITHUB_OUTPUT"
+            echo "channel=beta"                 >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event.inputs.prerelease }}" == "true" ]]; then
+            echo "is_prerelease=true"           >> "$GITHUB_OUTPUT"
+            echo "channel=beta"                 >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false"          >> "$GITHUB_OUTPUT"
+            echo "channel=latest"               >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "release_branch=main"            >> "$GITHUB_OUTPUT"
+
+      - name: ✅ Summary
+        shell: bash
+        run: |
+          echo "────────────────────────────────────────"
+          echo "  Tag         : ${{ steps.resolve.outputs.tag }}"
+          echo "  Version     : ${{ steps.resolve.outputs.version }}"
+          echo "  Channel     : ${{ steps.resolve.outputs.channel }}"
+          echo "  Pre-release : ${{ steps.resolve.outputs.is_prerelease }}"
+          echo "────────────────────────────────────────"
+
+  # ──────────────────────────────────────────────
+  # BUILD: Empaquetar la app en Windows (EXE portable)
+  # ──────────────────────────────────────────────
+  build:
+    name: 🏗️ Build (${{ matrix.os }})
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+        include:
+          - os: windows-latest
+            build_script: build:win
+            artifact_name: AML-Audio-Tool-Windows-x64
+          - os: ubuntu-latest
+            build_script: build:linux
+            artifact_name: AML-Audio-Tool-Linux-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: npm ci
+
+      - name: 🔧 Install Linux system deps (if needed)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dpkg-dev fakeroot rpm 2>/dev/null || true
+        shell: bash
+
+      - name: 🏗️ Build ${{ matrix.os }}
+        run: npm run ${{ matrix.build_script }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/
+          if-no-files-found: error
+
+  # ──────────────────────────────────────────────
+  # RELEASE: Crear GitHub Release con los assets
+  # ──────────────────────────────────────────────
+  release:
+    name: 🚀 Create GitHub Release
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repository (with tags for release notes)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📥 Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: 📦 List files to publish
+        shell: bash
+        run: |
+          echo "─── Assets to publish ───"
+          find release-assets -type f -not -path '*/latest*' | sort
+          echo "─────────────────────────"
+
+      - name: 🏷️ Create/update Git tag (manual mode)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = '${{ needs.prepare.outputs.tag }}';
+            const sha = context.sha;
+            try {
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `refs/tags/${tag}`,
+                sha: sha
+              });
+              console.log(`✅ Tag ${tag} created @ ${sha}`);
+            } catch (e) {
+              if (e.status === 422) {
+                console.log(`⚠️  Tag ${tag} already exists, reusing it`);
+              } else {
+                throw e;
+              }
+            }
+
+      # ── Sincronizar package.json con la versión del tag ──
+      - name: 📝 Sync package.json version
+        shell: bash
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            pkg.version = '${VERSION}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('✅ package.json version → ${VERSION}');
+          "
+
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/**
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.tag }}
+          body_path: ${{ github.workspace }}/.github/release-template.md
+          fail_on_unmatched_files: false
+          generate_release_notes: true
+          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔗 Release URL
+        shell: bash
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          REPO="${{ github.repository }}"
+          echo "✅ Release created: https://github.com/${REPO}/releases/tag/${TAG}"
