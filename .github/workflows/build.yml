@@ -1,4 +1,4 @@
-name: 🔨 CI Build
+name: 🔨 CI Build (Windows)
 
 on:
   push:
@@ -20,22 +20,8 @@ concurrency:
 
 jobs:
   validate:
-    name: 📦 Validate Build (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - windows-latest
-          - ubuntu-latest
-        include:
-          - os: windows-latest
-            build_script: build:win
-            artifact_suffix: win-x64
-          - os: ubuntu-latest
-            build_script: build:linux
-            artifact_suffix: linux-x64
-
-    runs-on: ${{ matrix.os }}
+    name: 📦 Validate Build
+    runs-on: windows-latest
 
     steps:
       - name: ⬇️ Checkout repository
@@ -50,15 +36,14 @@ jobs:
       - name: 📥 Install dependencies
         run: npm ci
 
-      - name: 🏗️ Build for ${{ matrix.os }}
-        run: npm run ${{ matrix.build_script }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🏗️ Build Windows (portable EXE)
+        run: npm run build:win
+        # Sin GH_TOKEN para evitar que electron-builder intente publicar
 
-      - name: 📤 Upload artifacts (${{ matrix.artifact_suffix }})
+      - name: 📤 Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.artifact_suffix }}
+          name: build-win
           path: dist/
           if-no-files-found: warn
           retention-days: 7

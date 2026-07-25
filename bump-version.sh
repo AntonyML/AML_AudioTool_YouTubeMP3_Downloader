@@ -223,7 +223,7 @@ echo -e "  Tag   : ${BOLD}${TAG}${NC}"
 echo -e "  Commit: ${BOLD}${COMMIT_MSG}${NC}"
 echo
 echo -e "  GitHub Actions hará el resto automáticamente:"
-echo -e "    🔨  Build: Windows EXE + Linux AppImage/.deb"
+echo -e "    🔨  Build: Windows EXE portable"
 echo -e "    🚀  GitHub Release con release notes automáticas"
 echo
 echo -e "  🔗  https://github.com/${REPO_SLUG}/releases/tag/${TAG}"
