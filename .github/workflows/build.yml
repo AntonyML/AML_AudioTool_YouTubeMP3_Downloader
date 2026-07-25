@@ -13,7 +13,6 @@ on:
     branches:
       - main
 
-# Cancelar corridas duplicadas en el mismo PR/rama
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -27,10 +26,10 @@ jobs:
       - name: ⬇️ Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node.js 20
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: 📥 Install dependencies
@@ -38,7 +37,8 @@ jobs:
 
       - name: 🏗️ Build Windows (portable EXE)
         run: npm run build:win
-        # Sin GH_TOKEN para evitar que electron-builder intente publicar
+        env:
+          ELECTRON_BUILDER_PUBLISH: "never"
 
       - name: 📤 Upload artifacts
         uses: actions/upload-artifact@v4
