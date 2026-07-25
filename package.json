@@ -2,14 +2,19 @@
   "name": "yt-dlp-ui",
   "version": "1.0.0",
   "description": "Aplicación de escritorio para descargar música y videos",
-  "author": "Tu Nombre",
+  "author": "AntonyML <antonyml2016@gmail.com>",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux"
+    "build:linux": "electron-builder --linux",
+    "release:patch": "bash bump-version.sh patch",
+    "release:minor": "bash bump-version.sh minor",
+    "release:major": "bash bump-version.sh major",
+    "release:beta": "bash bump-version.sh prerelease --preid beta",
+    "release:dry": "bash bump-version.sh patch --dry-run"
   },
   "build": {
     "appId": "com.tony.ml.cr",
