@@ -162,11 +162,25 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      - name: 📦 List files to publish
+      - name: 🧹 Filter distributable assets (remove Electron runtime internals)
         shell: bash
         run: |
+          echo "─── Assets before filtering ───"
+          find release-assets -type f | sort | wc -l
+          echo " total files"
+          echo ""
+          echo "Keeping only: *.exe, *.AppImage, *.deb, latest*.yml, app-update.yml"
+          echo "(Removing ~150+ Electron runtime internals: .pak, .so, .dll, .bin, .dat, etc.)"
+          find release-assets -type f \
+            ! -name '*.exe' \
+            ! -name '*.AppImage' \
+            ! -name '*.deb' \
+            ! -name 'latest*.yml' \
+            ! -name 'app-update.yml' \
+            -delete
+          echo ""
           echo "─── Assets to publish ───"
-          find release-assets -type f -not -path '*/latest*' | sort
+          find release-assets -type f | sort
           echo "─────────────────────────"
 
       - name: 🏷️ Create/update Git tag (manual mode)

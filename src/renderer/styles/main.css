@@ -561,7 +561,7 @@ button:disabled {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 /* Scrollbar */
@@ -637,4 +637,213 @@ button:disabled {
 
 #downloadBtn:disabled:hover::after {
     opacity: 1;
+}
+
+/* ── Update Banner ── */
+.update-banner {
+    background: linear-gradient(135deg, #1a2a3a 0%, #0f1f2f 100%);
+    border-bottom: 1px solid #2a4a6a;
+    padding: 10px 25px;
+    transition: all 0.3s ease;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.update-banner.available {
+    background: linear-gradient(135deg, #1a2a1a 0%, #0f1f0f 100%);
+    border-color: #2a5a2a;
+}
+
+.update-banner.downloaded {
+    background: linear-gradient(135deg, #0a2a1a 0%, #0a1f0f 100%);
+    border-color: #00aa00;
+}
+
+.update-banner.error {
+    background: linear-gradient(135deg, #2a1a1a 0%, #1f0f0f 100%);
+    border-color: #5a2a2a;
+}
+
+.update-banner.not-available {
+    background: linear-gradient(135deg, #1a1a2a 0%, #0f0f1f 100%);
+    border-color: #2a2a5a;
+}
+
+.update-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.update-icon {
+    color: #4a9eff;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.update-banner.available .update-icon {
+    color: #00ff88;
+}
+
+.update-banner.downloaded .update-icon {
+    color: #00ff44;
+}
+
+.update-banner.error .update-icon {
+    color: #ff4444;
+}
+
+.update-text {
+    flex: 1;
+}
+
+#updateMessage {
+    font-size: 13px;
+    color: #e0e0e0;
+    font-weight: 500;
+}
+
+.update-banner.available #updateMessage {
+    color: #00ff88;
+}
+
+.update-banner.downloaded #updateMessage {
+    color: #00ff44;
+}
+
+.update-banner.error #updateMessage {
+    color: #ff6666;
+}
+
+.update-progress {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.update-progress-bar {
+    flex: 1;
+    max-width: 300px;
+    height: 6px;
+    background: #2a2a2a;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.update-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4a9eff, #00aaff);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+#updateProgressText {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+}
+
+.update-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.update-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.update-btn:hover {
+    transform: translateY(-1px);
+}
+
+.update-btn:active {
+    transform: translateY(0);
+}
+
+.update-btn.download {
+    background: linear-gradient(135deg, #00aa00, #008800);
+    color: #fff;
+}
+
+.update-btn.download:hover {
+    background: linear-gradient(135deg, #00cc00, #00aa00);
+    box-shadow: 0 0 12px rgba(0, 170, 0, 0.4);
+}
+
+.update-btn.install {
+    background: linear-gradient(135deg, #0066cc, #0052a3);
+    color: #fff;
+}
+
+.update-btn.install:hover {
+    background: linear-gradient(135deg, #0077ee, #0066cc);
+    box-shadow: 0 0 12px rgba(0, 102, 204, 0.4);
+}
+
+.update-btn.later {
+    background: transparent;
+    color: #888;
+    border: 1px solid #444;
+}
+
+.update-btn.later:hover {
+    background: #2a2a2a;
+    color: #aaa;
+    border-color: #666;
+}
+
+.update-btn.close {
+    background: transparent;
+    color: #555;
+    padding: 6px 8px;
+    border: none;
+    font-size: 14px;
+}
+
+.update-btn.close:hover {
+    color: #aaa;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Check for Updates Button ── */
+.check-updates-btn {
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    color: #666;
+    border: 1px solid #333;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 11px;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+}
+
+.check-updates-btn:hover {
+    background: #1a1a1a;
+    color: #aaa;
+    border-color: #555;
 }

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
 const DownloadManager = require('./core/DownloadManager');
 
 let win;
@@ -19,6 +20,7 @@ function createWindow() {
     
     downloadManager = new DownloadManager({ maxConcurrent: 20 });
     setupDownloadEvents();
+    setupAutoUpdater();
 }
 
 function setupDownloadEvents() {
@@ -111,6 +113,103 @@ ipcMain.handle('change-max-concurrent', async (event, { maxConcurrent }) => {
         return { success: false, error: error.message };
     }
 });
+
+// ── Auto-Updater IPC ──
+ipcMain.handle('check-for-updates', async () => {
+    try {
+        autoUpdater.checkForUpdates();
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('download-update', async () => {
+    try {
+        autoUpdater.downloadUpdate();
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('install-update', async () => {
+    try {
+        autoUpdater.quitAndInstall();
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// ── Auto-Updater Events ──
+let isSilentCheck = false;
+
+function setupAutoUpdater() {
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    autoUpdater.on('checking-for-update', () => {
+        if (isSilentCheck) {
+            isSilentCheck = false;
+            return; // Silent startup: don't show "checking" banner
+        }
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('update-checking');
+        }
+    });
+
+    autoUpdater.on('update-available', (info) => {
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('update-available', {
+                version: info.version,
+                releaseDate: info.releaseDate,
+                releaseNotes: info.releaseNotes
+            });
+        }
+    });
+
+    autoUpdater.on('update-not-available', (info) => {
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('update-not-available', info);
+        }
+    });
+
+    autoUpdater.on('download-progress', (progress) => {
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('update-download-progress', {
+                percent: Math.round(progress.percent),
+                bytesPerSecond: progress.bytesPerSecond,
+                total: progress.total,
+                transferred: progress.transferred
+            });
+        }
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('update-downloaded', {
+                version: info.version
+            });
+        }
+    });
+
+    autoUpdater.on('error', (err) => {
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('update-error', {
+                message: err.message || 'Error de actualización desconocido'
+            });
+        }
+    });
+
+    // ── Silent update check on startup ──
+    setTimeout(() => {
+        isSilentCheck = true;
+        autoUpdater.checkForUpdates().catch(() => {
+            // Silently ignore startup check errors
+        });
+    }, 5000);
+}
 
 app.whenReady().then(createWindow);
 

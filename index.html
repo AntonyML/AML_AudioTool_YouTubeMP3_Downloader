@@ -31,6 +31,41 @@
             </div>
         </header>
 
+        <!-- Update Banner -->
+        <div id="updateBanner" class="update-banner hidden">
+            <div class="update-content">
+                <div class="update-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 12a11 11 0 1 1-22 0 11 11 0 0 1 22 0Z"/>
+                        <path d="M12 8v4l2.5 2.5"/>
+                    </svg>
+                </div>
+                <div class="update-text">
+                    <span id="updateMessage"></span>
+                    <div id="updateProgress" class="update-progress hidden">
+                        <div class="update-progress-bar">
+                            <div id="updateProgressFill" class="update-progress-fill"></div>
+                        </div>
+                        <span id="updateProgressText"></span>
+                    </div>
+                </div>
+                <div id="updateActions" class="update-actions">
+                    <button id="updateInstallBtn" class="update-btn install hidden" onclick="installUpdate()">
+                        Instalar y Reiniciar
+                    </button>
+                    <button id="updateDownloadBtn" class="update-btn download" onclick="downloadUpdate()">
+                        Descargar
+                    </button>
+                    <button id="updateLaterBtn" class="update-btn later" onclick="dismissUpdate()">
+                        Más tarde
+                    </button>
+                    <button id="updateCloseBtn" class="update-btn close" onclick="dismissUpdate()" title="Cerrar">
+                        ✕
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="main-content">
             <!-- Panel de control -->
             <aside class="control-panel">
@@ -70,6 +105,9 @@
                 <div class="system-info">
                     <h3>Sistema</h3>
                     <div id="systemStatus" class="status-list"></div>
+                    <button class="check-updates-btn" onclick="checkForUpdates()">
+                        🔄 Buscar actualizaciones
+                    </button>
                 </div>
             </aside>
 
