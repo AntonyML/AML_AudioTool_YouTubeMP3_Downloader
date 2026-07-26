@@ -1,70 +1,91 @@
 # AML Audio Tool
 
-AML Audio Tool is a professional desktop application designed for efficient audio and video downloading from YouTube. Built with Electron and Node.js, it leverages the power of `yt-dlp` and `ffmpeg` to provide a robust, high-performance downloading experience.
+Aplicación de escritorio para descargar música y videos de YouTube. Construida con Electron, usa `yt-dlp` y `ffmpeg` para la descarga y conversión.
 
-## Features
+## Características
 
-- **High-Quality Downloads:** Support for various audio and video formats.
-- **Playlist Support:** Intelligent handling of YouTube playlists for batch downloading.
-- **Concurrent Download Manager:** Optimized performance with configurable concurrent download limits (default: 20).
-- **Resource Monitoring:** Real-time system status and FFmpeg availability checks.
-- **Cross-Platform:** Compatible with Windows, macOS, and Linux.
-- **Modular Architecture:** Clean separation of concerns between main process, renderer, and core logic.
+- **MP3 / MP4**: selector de formato antes de cada descarga
+- **Descargas concurrentes**: hasta 20 descargas simultáneas con control de rendimiento (Bajo 5 / Medio 10 / Alto 15 / Ultra 20)
+- **Playlists**: expansión y descarga por lotes con límite escalable según rendimiento (100/200/400/1000 videos)
+- **Auto-update**: actualizaciones automáticas vía `electron-updater` y GitHub Releases
+- **Auto-bump de versión**: el pipeline incrementa la versión automáticamente en cada release
+- **Binarios incluidos**: `ffmpeg` y `yt-dlp` se empaquetan dentro del EXE portable
+- **Mirrors**: al publicar un Release, se sube el EXE a Catbox y GoFile como descarga rápida
+- **Monitoreo en tiempo real**: estado del sistema, disponibilidad de FFmpeg, progreso de descargas
 
-## Technical Stack
+## Requisitos
 
-- **Framework:** Electron
-- **Runtime:** Node.js
-- **Core Tools:**
-  - `yt-dlp` for media extraction.
-  - `ffmpeg` for media conversion and processing.
+- **Windows** (portable EXE, no requiere instalación)
+- ffmpeg y yt-dlp vienen incluidos en el EXE
 
-## Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/AntonyML/AML_AudioTool_YouTubeMP3_Downloader.git
-   ```
-
-2. Navigate to the project directory:
-   ```bash
-   cd AML_AudioTool_YouTubeMP3_Downloader
-   ```
-
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-## Usage
-
-### Development
-
-To start the application in development mode:
+## Instalación (desarrollo)
 
 ```bash
+git clone https://github.com/AntonyML/AML_AudioTool_YouTubeMP3_Downloader.git
+cd AML_AudioTool_YouTubeMP3_Downloader
+npm install
 npm start
 ```
 
-### Building
+## Build
 
-To build the application for production:
+```bash
+npm run build:win     # Windows portable EXE
+```
 
-- **Windows:**
-  ```bash
-  npm run build:win
-  ```
+## Pipeline (CI/CD)
 
-- **macOS:**
-  ```bash
-  npm run build:mac
-  ```
+El pipeline `release.yml` se ejecuta automáticamente al hacer push a `main` o manualmente via `workflow_dispatch`:
 
-- **Linux:**
-  ```bash
-  npm run build:linux
-  ```
+1. Prepara versión (auto-bump patch)
+2. Descarga ffmpeg + yt-dlp
+3. Sincroniza versión en `package.json`
+4. Compila el portable EXE
+5. Crea GitHub Release con assets (EXE, ffmpeg.exe, yt-dlp.exe, latest.yml)
+6. Sube mirrors a Catbox y GoFile
+7. Inyecta los links de los mirrors en el body del Release
 
-## License
+## Arquitectura
 
-Licensed under the Apache License, Version 2.0. See the LICENSE file for details.
+```
+Renderer (UI) ←─ IPC ─→ Main Process ─→ DownloadManager
+                                           ├── DownloadRegistry
+                                           ├── DownloadScheduler
+                                           ├── ResourceSemaphore
+                                           ├── DownloadExecutor → yt-dlp
+                                           ├── PlaylistExpander
+                                           └── ValidationManager
+```
+
+## Estructura del proyecto
+
+```
+├── index.html                     # UI principal
+├── package.json                   # Config y build de electron-builder
+├── src/
+│   ├── main.js                    # Proceso principal (IPC, autoUpdater)
+│   ├── core/
+│   │   ├── DownloadManager.js     # Fachada del sistema de descargas
+│   │   ├── DownloadExecutor.js    # Spawn y argumentos de yt-dlp
+│   │   ├── DownloadScheduler.js   # Cola FIFO + semáforo
+│   │   ├── DownloadRegistry.js    # Registro de descargas
+│   │   ├── DownloadPathResolver.js
+│   │   ├── PlaylistExpander.js    # Expansión de playlists
+│   │   ├── ValidationManager.js   # Validaciones pre-descarga
+│   │   ├── StateMachine.js
+│   │   └── ResourceSemaphore.js   # Control de concurrencia
+│   └── renderer/
+│       ├── app-modular.js         # Lógica de la UI
+│       ├── core/state.js          # Estado global
+│       ├── ui/                    # Módulos de UI
+│       ├── config/constants.js    # Constantes y config
+│       └── styles/main.css
+├── .github/
+│   ├── workflows/release.yml      # Pipeline CI/CD
+│   └── release-template.md        # Template del Release body
+└── bin/                           # ffmpeg.exe + yt-dlp.exe (descargados en CI)
+```
+
+## Licencia
+
+Apache License 2.0
