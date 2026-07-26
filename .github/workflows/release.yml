@@ -227,3 +227,37 @@ jobs:
           TAG="${{ needs.prepare.outputs.tag }}"
           REPO="${{ github.repository }}"
           echo "✅ Release created: https://github.com/${REPO}/releases/tag/${TAG}"
+
+      - name: ⚡ Upload mirrors (Catbox + GoFile)
+        shell: bash
+        run: |
+          EXE_PATH=$(find release-assets -name 'AML Audio Tool *.exe' | head -n1)
+          if [ -z "$EXE_PATH" ]; then
+            echo "❌ No se encontró el EXE"
+            exit 1
+          fi
+          FILENAME=$(basename "$EXE_PATH")
+          echo "⬆️ Subiendo: $FILENAME"
+          echo ""
+
+          # ── CATBOX ──
+          echo "📤 Subiendo a Catbox..."
+          CATBOX_URL=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@${EXE_PATH}" https://catbox.moe/user/api.php)
+          echo "   ✅ $CATBOX_URL"
+          echo ""
+
+          # ── GOFILE ──
+          echo "📤 Subiendo a GoFile..."
+          SERVER=$(curl -s https://api.gofile.io/servers | jq -r '.data.servers[0].name')
+          GOFILE_RESULT=$(curl -s -F "file=@${EXE_PATH}" "https://${SERVER}.gofile.io/contents/uploadfile")
+          GOFILE_URL=$(echo "$GOFILE_RESULT" | jq -r '.data.downloadPage')
+          echo "   ✅ $GOFILE_URL"
+          echo ""
+
+          # ── RESUMEN ──
+          echo "══════════════════════════════════════════════════"
+          echo "  ⚡ DESCARGA RÁPIDA - $FILENAME"
+          echo "──────────────────────────────────────────────────"
+          echo "  🐱 Catbox : $CATBOX_URL"
+          echo "  📁 GoFile : $GOFILE_URL"
+          echo "══════════════════════════════════════════════════"
