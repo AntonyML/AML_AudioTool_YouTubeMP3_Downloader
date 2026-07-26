@@ -184,6 +184,56 @@ jobs:
           find release-assets -type f | sort
           echo "─────────────────────────"
 
+      - name: ⚡ Upload mirrors (Catbox + GoFile)
+        shell: bash
+        run: |
+          EXE_PATH=$(find release-assets -name 'AML Audio Tool *.exe' | head -n1)
+          if [ -z "$EXE_PATH" ]; then
+            echo "❌ No se encontró el EXE"
+            exit 1
+          fi
+          FILENAME=$(basename "$EXE_PATH")
+          echo "⬆️ Subiendo: $FILENAME"
+
+          # ── CATBOX ──
+          echo "📤 Subiendo a Catbox..."
+          CATBOX_URL=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@${EXE_PATH}" https://catbox.moe/user/api.php)
+          if echo "$CATBOX_URL" | grep -q "^https\?://"; then
+            echo "   ✅ $CATBOX_URL"
+          else
+            echo "   ⚠️ Error: $CATBOX_URL"
+            CATBOX_URL=""
+          fi
+
+          # ── GOFILE ──
+          echo "📤 Subiendo a GoFile..."
+          SERVER=$(curl -s https://api.gofile.io/servers | jq -r '.data.servers[0].name')
+          GOFILE_RESULT=$(curl -s -F "file=@${EXE_PATH}" "https://${SERVER}.gofile.io/contents/uploadfile")
+          GOFILE_URL=$(echo "$GOFILE_RESULT" | jq -r '.data.downloadPage')
+          echo "   ✅ $GOFILE_URL"
+
+          # ── GUARDAR URLs para el release body ──
+          echo "CATBOX_URL=${CATBOX_URL:-}" >> "$GITHUB_ENV"
+          echo "GOFILE_URL=${GOFILE_URL:-}" >> "$GITHUB_ENV"
+
+      - name: 📝 Build release body with mirror links
+        shell: bash
+        run: |
+          cat .github/release-template.md > release-body.md
+          echo "" >> release-body.md
+          echo "---" >> release-body.md
+          echo "" >> release-body.md
+          echo "### ⚡ Descarga rápida" >> release-body.md
+          echo "" >> release-body.md
+          echo "| Mirror | Link |" >> release-body.md
+          echo "|--------|------|" >> release-body.md
+          if [ -n "${{ env.CATBOX_URL }}" ]; then
+            echo "| 🐱 Catbox | [${{ env.CATBOX_URL }}](${{ env.CATBOX_URL }}) |" >> release-body.md
+          fi
+          if [ -n "${{ env.GOFILE_URL }}" ]; then
+            echo "| 📁 GoFile | [${{ env.GOFILE_URL }}](${{ env.GOFILE_URL }}) |" >> release-body.md
+          fi
+
       - name: 🏷️ Create/update Git tag
         if: github.event_name != 'pull_request'
         uses: actions/github-script@v7
@@ -213,7 +263,7 @@ jobs:
           files: release-assets/**
           tag_name: ${{ needs.prepare.outputs.tag }}
           name: ${{ needs.prepare.outputs.tag }}
-          body_path: ${{ github.workspace }}/.github/release-template.md
+          body_path: release-body.md
           fail_on_unmatched_files: false
           generate_release_notes: true
           prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
@@ -227,37 +277,3 @@ jobs:
           TAG="${{ needs.prepare.outputs.tag }}"
           REPO="${{ github.repository }}"
           echo "✅ Release created: https://github.com/${REPO}/releases/tag/${TAG}"
-
-      - name: ⚡ Upload mirrors (Catbox + GoFile)
-        shell: bash
-        run: |
-          EXE_PATH=$(find release-assets -name 'AML Audio Tool *.exe' | head -n1)
-          if [ -z "$EXE_PATH" ]; then
-            echo "❌ No se encontró el EXE"
-            exit 1
-          fi
-          FILENAME=$(basename "$EXE_PATH")
-          echo "⬆️ Subiendo: $FILENAME"
-          echo ""
-
-          # ── CATBOX ──
-          echo "📤 Subiendo a Catbox..."
-          CATBOX_URL=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@${EXE_PATH}" https://catbox.moe/user/api.php)
-          echo "   ✅ $CATBOX_URL"
-          echo ""
-
-          # ── GOFILE ──
-          echo "📤 Subiendo a GoFile..."
-          SERVER=$(curl -s https://api.gofile.io/servers | jq -r '.data.servers[0].name')
-          GOFILE_RESULT=$(curl -s -F "file=@${EXE_PATH}" "https://${SERVER}.gofile.io/contents/uploadfile")
-          GOFILE_URL=$(echo "$GOFILE_RESULT" | jq -r '.data.downloadPage')
-          echo "   ✅ $GOFILE_URL"
-          echo ""
-
-          # ── RESUMEN ──
-          echo "══════════════════════════════════════════════════"
-          echo "  ⚡ DESCARGA RÁPIDA - $FILENAME"
-          echo "──────────────────────────────────────────────────"
-          echo "  🐱 Catbox : $CATBOX_URL"
-          echo "  📁 GoFile : $GOFILE_URL"
-          echo "══════════════════════════════════════════════════"
