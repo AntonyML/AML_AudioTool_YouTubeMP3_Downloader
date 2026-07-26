@@ -1,10 +1,11 @@
-// DownloadRegistry.js - Registro Central en Memoria
-// Fuente única de verdad para todas las descargas
+const logger = require('./Logger');
+const log = logger.child('DownloadRegistry');
 
 class DownloadRegistry {
     constructor() {
         this.downloads = new Map();
         this.nextId = 1;
+        log.info('Registry inicializado');
     }
 
     create(url, outputPath, metadata = {}) {
@@ -22,8 +23,8 @@ class DownloadRegistry {
             startedAt: null,
             finishedAt: null
         };
-        
         this.downloads.set(id, task);
+        log.info(`downloadId=${id}`, 'Creada:', url);
         return id;
     }
 
@@ -45,19 +46,22 @@ class DownloadRegistry {
 
     updateState(id, newState) {
         const task = this.downloads.get(id);
-        if (!task) return false;
-        
+        if (!task) {
+            log.warn(`downloadId=${id}`, 'updateState falló: no existe`);
+            return false;
+        }
+
         task.state = newState;
-        
+
         if (newState === 'DOWNLOADING' && !task.startedAt) {
             task.startedAt = Date.now();
         }
-        
+
         if (['COMPLETED', 'ERROR', 'STOPPED'].includes(newState)) {
             task.finishedAt = Date.now();
             task.process = null;
         }
-        
+
         return true;
     }
 
@@ -70,8 +74,12 @@ class DownloadRegistry {
 
     setError(id, error) {
         const task = this.downloads.get(id);
-        if (!task) return false;
+        if (!task) {
+            log.warn(`downloadId=${id}`, 'setError falló: no existe');
+            return false;
+        }
         task.error = error;
+        log.error(`downloadId=${id}`, 'Error registrado:', error);
         return true;
     }
 
@@ -79,6 +87,7 @@ class DownloadRegistry {
         const task = this.downloads.get(id);
         if (!task) return false;
         task.process = process;
+        log.debug(`downloadId=${id}`, 'Process asignado');
         return true;
     }
 
@@ -86,6 +95,7 @@ class DownloadRegistry {
         const task = this.downloads.get(id);
         if (task && task.process) {
             task.process.kill();
+            log.info(`downloadId=${id}`, 'Process kill por remove');
         }
         return this.downloads.delete(id);
     }
@@ -97,6 +107,7 @@ class DownloadRegistry {
             }
         });
         this.downloads.clear();
+        log.info('Registry limpiado');
     }
 
     getStats() {

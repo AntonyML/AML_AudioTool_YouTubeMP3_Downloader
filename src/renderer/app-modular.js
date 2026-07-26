@@ -1,4 +1,5 @@
 // app.js - Orquestador principal
+require('./src/renderer/core/logger');
 console.log('[APP] Iniciando carga de modulos...');
 
 const { ipcRenderer } = require('electron');

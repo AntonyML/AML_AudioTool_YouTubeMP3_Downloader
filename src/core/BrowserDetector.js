@@ -1,11 +1,13 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const logger = require('./Logger');
+
+const log = logger.child('BrowserDetector');
 
 const BROWSER_PROFILES = [
   {
-    id: 'chrome',
-    name: 'Google Chrome',
+    id: 'chrome', name: 'Google Chrome',
     winPaths: [
       path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
       path.join(process.env.PROGRAMFILES || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
@@ -15,8 +17,7 @@ const BROWSER_PROFILES = [
     linuxBins: ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']
   },
   {
-    id: 'edge',
-    name: 'Microsoft Edge',
+    id: 'edge', name: 'Microsoft Edge',
     winPaths: [
       path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
       path.join(process.env.PROGRAMFILES || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
@@ -26,8 +27,7 @@ const BROWSER_PROFILES = [
     linuxBins: ['microsoft-edge', 'microsoft-edge-stable']
   },
   {
-    id: 'firefox',
-    name: 'Mozilla Firefox',
+    id: 'firefox', name: 'Mozilla Firefox',
     winPaths: [
       path.join(process.env.PROGRAMFILES || '', 'Mozilla Firefox', 'firefox.exe'),
       path.join(process.env['PROGRAMFILES(X86)'] || '', 'Mozilla Firefox', 'firefox.exe')
@@ -36,8 +36,7 @@ const BROWSER_PROFILES = [
     linuxBins: ['firefox']
   },
   {
-    id: 'brave',
-    name: 'Brave',
+    id: 'brave', name: 'Brave',
     winPaths: [
       path.join(process.env.LOCALAPPDATA || '', 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
       path.join(process.env.PROGRAMFILES || '', 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe')
@@ -46,8 +45,7 @@ const BROWSER_PROFILES = [
     linuxBins: ['brave-browser', 'brave']
   },
   {
-    id: 'opera',
-    name: 'Opera',
+    id: 'opera', name: 'Opera',
     winPaths: [
       path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Opera', 'opera.exe'),
       path.join(process.env.APPDATA || '', 'Opera Software', 'Opera Stable', 'opera.exe')
@@ -67,6 +65,7 @@ class BrowserDetector {
   detect() {
     const now = Date.now();
     if (this._cache !== undefined && (now - this._cacheTime) < this._cacheTTL) {
+      log.debug('Cache hit:', this._cache ? this._cache.name : 'none');
       return this._cache;
     }
 
@@ -78,6 +77,12 @@ class BrowserDetector {
         result = { id: profile.id, name: profile.name };
         break;
       }
+    }
+
+    if (result) {
+      log.info('Browser detectado:', result.name);
+    } else {
+      log.warn('No se detectó ningún navegador compatible');
     }
 
     this._cache = result;
@@ -115,6 +120,7 @@ class BrowserDetector {
   invalidateCache() {
     this._cache = undefined;
     this._cacheTime = 0;
+    log.debug('Cache invalidado');
   }
 }
 

@@ -2,6 +2,9 @@ const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const browserDetector = require('./BrowserDetector');
+const logger = require('./Logger');
+
+const log = logger.child('PlaylistExpander');
 
 const PLAYLIST_RETRY = {
   MAX_ATTEMPTS: 2,
@@ -42,6 +45,7 @@ class PlaylistExpander {
     _spawnWithRetry(args, attempt = 0) {
         return new Promise((resolve, reject) => {
             const cmd = resolveYtdlpPath() || 'yt-dlp';
+            log.info(`Spawning yt-dlp (intento ${attempt + 1}/${PLAYLIST_RETRY.MAX_ATTEMPTS + 1})`);
             const ytdlp = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
 
             let stdout = '';
@@ -55,6 +59,7 @@ class PlaylistExpander {
                     resolve({ stdout, stderr });
                 } else {
                     const errMsg = stderr || `Process exited with code ${code}`;
+                    log.warn(`Código ${code}:`, errMsg.substring(0, 200));
                     if (
                         attempt < PLAYLIST_RETRY.MAX_ATTEMPTS &&
                         (stderr.toLowerCase().includes('429') ||
@@ -62,16 +67,21 @@ class PlaylistExpander {
                          stderr.toLowerCase().includes('connection reset'))
                     ) {
                         const delay = PLAYLIST_RETRY.BASE_DELAY_MS * (0.75 + Math.random() * 0.5);
+                        log.info(`Retry playlist en ${Math.round(delay)}ms`);
                         setTimeout(() => {
                             this._spawnWithRetry(args, attempt + 1).then(resolve, reject);
                         }, delay);
                     } else {
+                        log.error('Error fatal en playlist:', errMsg.substring(0, 300));
                         reject(new Error(errMsg));
                     }
                 }
             });
 
-            ytdlp.on('error', reject);
+            ytdlp.on('error', (error) => {
+                log.error('Spawn error en playlist:', error.message);
+                reject(error);
+            });
         });
     }
 
@@ -85,7 +95,8 @@ class PlaylistExpander {
             url
         ];
 
-        const { stdout, stderr } = await this._spawnWithRetry(args);
+        log.info('Expandiendo playlist:', url.substring(0, 80));
+        const { stdout } = await this._spawnWithRetry(args);
 
         const lines = stdout.trim().split('\n').filter(line => line.trim());
         const videos = [];
@@ -100,9 +111,11 @@ class PlaylistExpander {
         }
 
         if (videos.length > this.maxPlaylistSize) {
+            log.warn('Playlist excede límite:', videos.length);
             throw new Error(`Playlist too large: ${videos.length} videos (max ${this.maxPlaylistSize})`);
         }
 
+        log.info(`Playlist expandida: ${videos.length} videos`);
         return videos;
     }
 
@@ -116,13 +129,17 @@ class PlaylistExpander {
             url
         ];
 
+        log.info('Obteniendo info de playlist:', url.substring(0, 80));
         const { stdout } = await this._spawnWithRetry(args);
 
         const lines = stdout.trim().split('\n');
-        return {
+        const info = {
             count: parseInt(lines[0]) || 0,
             title: lines[1] || 'Unknown Playlist'
         };
+
+        log.info(`Playlist: "${info.title}" (${info.count} videos)`);
+        return info;
     }
 }
 

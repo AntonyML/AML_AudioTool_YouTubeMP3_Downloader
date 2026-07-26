@@ -3,9 +3,25 @@ const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 const DownloadManager = require('./core/DownloadManager');
+const logger = require('./core/Logger');
 
 let win;
 let downloadManager;
+
+const log = logger.child('Main');
+
+// ── File logger: intercept bare console.* calls ──
+const origConsole = { log: console.log, warn: console.warn, error: console.error };
+console.log = (...args) => { origConsole.log.apply(console, args); logger.info('Console', ...args); };
+console.warn = (...args) => { origConsole.warn.apply(console, args); logger.warn('Console', ...args); };
+console.error = (...args) => { origConsole.error.apply(console, args); logger.error('Console', ...args); };
+
+process.on('uncaughtException', (err) => {
+    log.error('UNCAUGHT EXCEPTION:', err.stack || err.message || err);
+});
+process.on('unhandledRejection', (reason) => {
+    log.error('UNHANDLED REJECTION:', reason instanceof Error ? reason.stack : reason);
+});
 
 function createWindow() {
     win = new BrowserWindow({
@@ -55,6 +71,8 @@ function createWindow() {
     if (fs.existsSync(updateConfigPath)) {
         setupAutoUpdater();
     }
+
+    log.info(`Logs: ${logger.getLogPath()}`);
 }
 
 function safeSend(channel, data) {
@@ -75,6 +93,12 @@ function setupDownloadEvents() {
     downloadManager.on('playlist-expanded', (data) => safeSend('playlist-expanded', data));
     downloadManager.on('playlist-error', (data) => safeSend('playlist-error', data));
 }
+
+// ── IPC: pipe renderer logs to file ──
+ipcMain.on('renderer-log', (event, { level, args }) => {
+    const method = logger[level] || logger.info;
+    method('Renderer', ...args);
+});
 
 ipcMain.handle('select-folder', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -200,12 +224,16 @@ function setupAutoUpdater() {
     }, 5000);
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+    logger.init();
+    createWindow();
+});
 
 app.on('window-all-closed', () => {
     if (downloadManager) {
         downloadManager.clear();
     }
+    logger.close();
     if (process.platform !== 'darwin') {
         app.quit();
     }

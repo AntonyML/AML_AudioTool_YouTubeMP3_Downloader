@@ -1,5 +1,5 @@
-// StateMachine.js - Máquina de Estados Explícita
-// Gestiona transiciones de estado válidas y previene estados inconsistentes
+const logger = require('./Logger');
+const log = logger.child('StateMachine');
 
 const STATES = {
     CREATED: 'CREATED',
@@ -36,12 +36,14 @@ class StateMachine {
     transition(downloadId, toState) {
         const task = this.registry.get(downloadId);
         if (!task) {
+            log.warn(`downloadId=${downloadId}`, 'Transición falló: download no encontrado');
             return { success: false, error: 'Download not found' };
         }
 
         const fromState = task.state;
 
         if (!this.canTransition(fromState, toState)) {
+            log.warn(`downloadId=${downloadId}`, `Transición inválida: ${fromState} -> ${toState}`);
             return {
                 success: false,
                 error: `Invalid transition: ${fromState} -> ${toState}`
@@ -49,7 +51,8 @@ class StateMachine {
         }
 
         this.registry.updateState(downloadId, toState);
-        
+        log.info(`downloadId=${downloadId}`, `${fromState} -> ${toState}`);
+
         this.emitter.emit('state-changed', {
             downloadId,
             fromState,

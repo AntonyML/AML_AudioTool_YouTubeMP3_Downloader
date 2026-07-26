@@ -4,6 +4,9 @@ const fs = require('fs');
 const DownloadPathResolver = require('./DownloadPathResolver');
 const ValidationManager = require('./ValidationManager');
 const browserDetector = require('./BrowserDetector');
+const logger = require('./Logger');
+
+const log = logger.child('DownloadExecutor');
 
 const RETRY_CONFIG = {
   MAX_RETRIES: 3,
@@ -67,9 +70,7 @@ function isFatalError(stderr) {
 }
 
 function formatErrorMessage(stderr) {
-    if (isFatalError(stderr)) {
-        return 'Video no disponible (privado/borrado)';
-    }
+    if (isFatalError(stderr)) return 'Video no disponible (privado/borrado)';
     if (stderr.includes('Signature extraction failed') ||
         stderr.includes('HTTP Error 403') ||
         stderr.includes('SSAP') ||
@@ -89,6 +90,7 @@ class DownloadExecutor {
         this.progressThrottles = new Map();
         this.pathResolver = new DownloadPathResolver();
         this.validator = new ValidationManager();
+        log.info('DownloadExecutor inicializado');
     }
 
     buildOutputTemplate(outputPath) {
@@ -135,15 +137,20 @@ class DownloadExecutor {
 
     async execute(downloadId) {
         const task = this.registry.get(downloadId);
-        if (!task) throw new Error('Download not found');
+        if (!task) {
+            log.error(`downloadId=${downloadId}`, 'execute falló: download no encontrado');
+            throw new Error('Download not found');
+        }
 
         const validationResult = await this.validator.validateBeforeExecute(this.pathResolver, this.registry, downloadId);
         if (!validationResult) {
             const summary = this.validator.getValidationSummary();
+            log.error(`downloadId=${downloadId}`, 'Validación falló:', summary.errors.join('; '));
             throw new Error(summary.errors.join('; '));
         }
 
         if (task.state === 'ALREADY_EXISTS') {
+            log.info(`downloadId=${downloadId}`, 'Archivo ya existe, omitiendo');
             this.emitter.emit('download-progress', { downloadId, progress: 100 });
             return;
         }
@@ -156,16 +163,24 @@ class DownloadExecutor {
                     RETRY_CONFIG.MAX_DELAY_MS
                 );
                 const jitter = delay * (0.75 + Math.random() * 0.5);
+                log.info(`downloadId=${downloadId}`, `Retry ${attempt}/${RETRY_CONFIG.MAX_RETRIES} en ${Math.round(jitter)}ms:`, lastError.message);
                 await new Promise(resolve => setTimeout(resolve, jitter));
             }
 
             try {
+                log.info(`downloadId=${downloadId}`, `Intento ${attempt + 1}/${RETRY_CONFIG.MAX_RETRIES + 1}`);
                 return await this._executeOnce(downloadId, attempt);
             } catch (error) {
                 lastError = error;
-                if (isFatalError(error.message) || attempt >= RETRY_CONFIG.MAX_RETRIES) {
+                if (isFatalError(error.message)) {
+                    log.error(`downloadId=${downloadId}`, 'Error fatal, sin retry:', error.message);
                     break;
                 }
+                if (attempt >= RETRY_CONFIG.MAX_RETRIES) {
+                    log.error(`downloadId=${downloadId}`, `Agotados ${RETRY_CONFIG.MAX_RETRIES} retries. Error final:`, error.message);
+                    break;
+                }
+                log.warn(`downloadId=${downloadId}`, `Error retryable (intento ${attempt + 1}):`, error.message);
             }
         }
 
@@ -182,6 +197,8 @@ class DownloadExecutor {
             const args = this.buildDownloadArgs(outputTemplate, ffmpegPath, task.url, task.metadata);
 
             const ytDlpCmd = resolveYtdlpPath() || 'yt-dlp';
+            log.info(`downloadId=${downloadId}`, `Spawning: ${ytDlpCmd}`, args.filter(a => !a.startsWith('--cookies')).join(' '));
+
             const ytdlp = spawn(ytDlpCmd, args, {
                 stdio: ['ignore', 'pipe', 'pipe'],
                 cwd: task.outputPath
@@ -200,6 +217,7 @@ class DownloadExecutor {
             });
 
             ytdlp.on('error', (error) => {
+                log.error(`downloadId=${downloadId}`, 'Spawn error:', error.message);
                 reject(error);
             });
 
@@ -209,11 +227,14 @@ class DownloadExecutor {
                 if (code === 0) {
                     this.registry.updateProgress(downloadId, 100);
                     this.emitter.emit('download-progress', { downloadId, progress: 100 });
+                    log.info(`downloadId=${downloadId}`, 'Completado exitosamente');
                     resolve();
                 } else if (task && task.state === 'CANCELLING') {
+                    log.info(`downloadId=${downloadId}`, 'Cancelado por usuario');
                     resolve();
                 } else {
                     const errorMessage = formatErrorMessage(stderr || `Process exited with code ${code}`);
+                    log.error(`downloadId=${downloadId}`, `Código ${code}:`, errorMessage);
                     reject(new Error(errorMessage));
                 }
             });
@@ -250,17 +271,23 @@ class DownloadExecutor {
 
     cancel(downloadId) {
         const task = this.registry.get(downloadId);
-        if (!task || !task.process) return false;
+        if (!task || !task.process) {
+            log.warn(`downloadId=${downloadId}`, 'cancel falló: sin process');
+            return false;
+        }
         try {
             this.progressThrottles.delete(downloadId);
             task.process.kill('SIGTERM');
+            log.info(`downloadId=${downloadId}`, 'SIGTERM enviado');
             setTimeout(() => {
                 if (task.process && !task.process.killed) {
                     task.process.kill('SIGKILL');
+                    log.info(`downloadId=${downloadId}`, 'SIGKILL enviado (timeout 3s)');
                 }
             }, 3000);
             return true;
         } catch (error) {
+            log.error(`downloadId=${downloadId}`, 'Error en cancel:', error.message);
             return false;
         }
     }

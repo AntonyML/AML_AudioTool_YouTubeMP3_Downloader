@@ -1,10 +1,10 @@
-// ValidationManager.js - Centraliza todas las validaciones del sistema
-// Maneja validaciones distribuidas en el flujo de descarga
-
 const fs = require('fs');
 const path = require('path');
 const dns = require('dns');
 const { execSync } = require('child_process');
+const logger = require('./Logger');
+
+const log = logger.child('ValidationManager');
 
 class ValidationManager {
     constructor() {
@@ -12,14 +12,12 @@ class ValidationManager {
         this.warnings = [];
     }
 
-    /**
-     * Valida conectividad básica a internet
-     */
     async validateNetworkConnection() {
         return new Promise((resolve) => {
             dns.lookup('google.com', (err) => {
                 if (err && err.code === 'ENOTFOUND') {
                     this.errors.push('No hay conexión a internet');
+                    log.error('Red: no hay conexión a internet');
                     resolve(false);
                 } else {
                     resolve(true);
@@ -28,22 +26,15 @@ class ValidationManager {
         });
     }
 
-    /**
-     * Valida que la longitud del path no exceda límites de Windows
-     * @param {string} outputPath - Carpeta destino
-     */
     validatePathLength(outputPath) {
-        // Windows MAX_PATH es 260, reservamos espacio para nombre archivo (~80 chars)
         if (outputPath.length > 180) {
             this.warnings.push('La ruta de destino es muy larga, podría causar errores');
+            log.warn('Path largo:', outputPath.length, 'caracteres');
             return false;
         }
         return true;
     }
 
-    /**
-     * Valida caracteres reservados adicionales
-     */
     validateReservedNames(filename) {
         const reserved = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'LPT1'];
         if (reserved.includes(filename.toUpperCase())) {
@@ -53,54 +44,45 @@ class ValidationManager {
         return true;
     }
 
-    /**
-     * Valida memoria disponible (básico)
-     */
     validateSystemResources() {
         const os = require('os');
         const freeMem = os.freemem();
-        const minMem = 100 * 1024 * 1024; // 100MB
+        const minMem = 100 * 1024 * 1024;
 
         if (freeMem < minMem) {
             this.warnings.push('Poca memoria RAM disponible');
-            return true; // Solo warning
+            log.warn('RAM baja:', Math.round(freeMem / 1024 / 1024), 'MB libre');
+            return true;
         }
         return true;
     }
 
-    /**
-     * Verifica permisos de ejecución
-     */
     validateExecutionPermissions() {
         try {
-            // Intenta ejecutar un comando simple
             execSync('echo test', { stdio: 'ignore' });
             return true;
         } catch (error) {
             this.errors.push('No hay permisos para ejecutar subprocesos');
+            log.error('Permisos de ejecución:', error.message);
             return false;
         }
     }
 
-    /**
-     * Valida que la carpeta de salida existe y es escribible
-     */
     validateOutputPath(outputPath) {
         if (!outputPath) {
             this.errors.push('Ruta de salida no especificada');
             return false;
         }
 
-        // Normalizar path para asegurar consistencia
         const safePath = path.normalize(outputPath.trim());
 
         if (!fs.existsSync(safePath)) {
             this.errors.push(`La carpeta destino no existe: ${safePath}`);
+            log.error('Carpeta destino no existe:', safePath);
             return false;
         }
 
         try {
-            // Verificar que es un directorio real
             const stats = fs.statSync(safePath);
             if (!stats.isDirectory()) {
                 this.errors.push(`La ruta seleccionada no es una carpeta válida: ${safePath}`);
@@ -112,7 +94,6 @@ class ValidationManager {
         }
 
         try {
-            // Verificar permisos de escritura de forma menos intrusiva primero
             fs.accessSync(safePath, fs.constants.W_OK);
         } catch (error) {
             this.errors.push(`No hay permisos de escritura en la carpeta: ${error.code || error.message}`);
@@ -120,27 +101,21 @@ class ValidationManager {
         }
 
         try {
-            // Prueba de escritura real (definitiva para Windows)
             const testFile = path.join(safePath, `test_${Date.now()}.tmp`);
             fs.writeFileSync(testFile, 'ok');
             fs.unlinkSync(testFile);
         } catch (error) {
-            // Si falla la escritura real pero accessSync pasó, lo marcamos como warning
-            // y dejamos que la descarga lo intente (posible falso positivo del test)
             if (error.code === 'ENOENT') {
-                 this.warnings.push(`Advertencia: No se pudo verificar escritura de archivos (ENOENT), pero la carpeta existe.`);
+                this.warnings.push('Advertencia: No se pudo verificar escritura de archivos (ENOENT), pero la carpeta existe.');
             } else {
-                 this.errors.push(`Error probando escritura de archivo: ${error.code || error.message}`);
-                 return false;
+                this.errors.push(`Error probando escritura de archivo: ${error.code || error.message}`);
+                return false;
             }
         }
 
         return true;
     }
 
-    /**
-     * Valida que ffmpeg.exe existe en la ubicación esperada
-     */
     resolveFfmpegPath() {
         const inResources = process.resourcesPath
             ? path.join(process.resourcesPath, 'ffmpeg.exe')
@@ -172,33 +147,25 @@ class ValidationManager {
     }
 
     validateFfmpegExists(ffmpegPath) {
-        if (ffmpegPath && fs.existsSync(ffmpegPath)) {
-            return true;
-        }
+        if (ffmpegPath && fs.existsSync(ffmpegPath)) return true;
         const fromPath = this.resolveFfmpegPath();
-        if (fromPath) {
-            return true;
-        }
-        this.errors.push(`ffmpeg.exe no encontrado. Instálalo con: winget install ffmpeg`);
+        if (fromPath) return true;
+        this.errors.push('ffmpeg.exe no encontrado. Instálalo con: winget install ffmpeg');
+        log.error('ffmpeg.exe no encontrado');
         return false;
     }
 
-    /**
-     * Valida que yt-dlp está disponible en el PATH
-     */
     validateYtdlpAvailable() {
         try {
             execSync('yt-dlp --version', { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
             return true;
         } catch {
             this.errors.push('yt-dlp no disponible. Instálalo con: winget install yt-dlp');
+            log.error('yt-dlp no disponible');
             return false;
         }
     }
 
-    /**
-     * Valida que la URL es una URL de YouTube válida
-     */
     validateUrl(url) {
         if (!url) {
             this.errors.push('URL no especificada');
@@ -208,59 +175,41 @@ class ValidationManager {
         const youtubeRegex = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|music\.youtube\.com\/watch\?v=)/;
         if (!youtubeRegex.test(url)) {
             this.errors.push('URL no es una URL de YouTube válida');
+            log.warn('URL inválida:', url ? url.substring(0, 80) : 'null');
             return false;
         }
 
         return true;
     }
 
-    /**
-     * Valida que no hay caracteres inválidos en el path (Excluyendo letra de unidad en Windows)
-     */
     validatePathCharacters(outputPath) {
-        // En Windows, los paths absolutos 'C:\ABC' contienen ':'
-        // Si fs.existsSync pasa, el path es válido para el OS
-        // Esta validación manual es redundante para paths existentes y causa falsos positivos con ':'
-        return true; 
+        return true;
     }
 
-    /**
-     * Valida espacio disponible en disco
-     */
     validateDiskSpace(outputPath, minSpaceMB = 100) {
         try {
-            // Obtener información del disco
-            const drive = outputPath.substring(0, 3); // e.g., "C:\"
+            const drive = outputPath.substring(0, 3);
             const stats = fs.statSync(drive);
-
-            // Nota: En Node.js puro es limitado, pero podemos verificar tamaño aproximado
-            // Para una validación completa necesitaríamos una librería adicional
             this.warnings.push('Validación de espacio en disco limitada en esta implementación');
             return true;
         } catch (error) {
             this.warnings.push('No se pudo verificar espacio en disco');
-            return true; // No bloquear por esto
+            return true;
         }
     }
 
-    /**
-     * Valida que no hay descargas duplicadas activas
-     */
     validateNoDuplicateDownloads(registry, url, currentDownloadId = null) {
         const activeDownloads = registry.getByState('DOWNLOADING');
-        // Excluir la descarga actual si estamos validando una descarga en ejecución
         const duplicate = activeDownloads.find(d => d.url === url && d.id !== currentDownloadId);
 
         if (duplicate) {
             this.errors.push('Ya hay una descarga activa para esta URL');
+            log.warn('Descarga duplicada detectada:', url.substring(0, 80));
             return false;
         }
         return true;
     }
 
-    /**
-     * Verifica archivos existentes y marca estado apropiado
-     */
     validateExistingFiles(pathResolver, registry, downloadId) {
         const task = registry.get(downloadId);
         if (!task) return true;
@@ -268,29 +217,24 @@ class ValidationManager {
         const format = (task.metadata && task.metadata.format) || 'mp3';
         const existingFiles = pathResolver.listExistingFiles(task.outputPath, format);
 
-        // Para URLs individuales, verificar si el archivo ya existe
         if (!task.metadata.isPlaylist) {
-            // Intentar predecir el nombre del archivo
             const predictedName = pathResolver.predictFilename(task.metadata.title, format);
             const ext = '.' + format;
             if (predictedName && existingFiles.includes(predictedName.replace(ext, ''))) {
-                // Marcar como ya existente
                 registry.updateState(downloadId, 'ALREADY_EXISTS');
                 this.warnings.push(`Archivo ya existe: ${predictedName}`);
-                return false; // No ejecutar descarga
+                log.info(`downloadId=${downloadId}`, 'Archivo ya existe, salteando:', predictedName);
+                return false;
             }
         }
 
         return true;
     }
 
-    /**
-     * Valida configuración de metadata
-     */
     validateMetadata(metadata) {
         if (!metadata) {
             this.warnings.push('Metadata no proporcionada');
-            return true; // No es crítico
+            return true;
         }
 
         if (metadata.isPlaylist && !metadata.playlistCount) {
@@ -300,9 +244,6 @@ class ValidationManager {
         return true;
     }
 
-    /**
-     * Valida que el sistema operativo es compatible
-     */
     validatePlatform() {
         const platform = process.platform;
         if (platform !== 'win32') {
@@ -311,9 +252,6 @@ class ValidationManager {
         return true;
     }
 
-    /**
-     * Ejecuta todas las validaciones críticas antes de crear descarga
-     */
     validateBeforeCreate(url, outputPath, metadata) {
         this.errors = [];
         this.warnings = [];
@@ -324,12 +262,12 @@ class ValidationManager {
         this.validatePlatform();
         this.validateMetadata(metadata);
 
+        if (this.errors.length > 0) {
+            log.warn('validateBeforeCreate falló:', this.errors.join('; '));
+        }
         return this.errors.length === 0;
     }
 
-    /**
-     * Ejecuta validaciones antes de ejecutar descarga
-     */
     async validateBeforeExecute(pathResolver, registry, downloadId) {
         this.errors = [];
         this.warnings = [];
@@ -337,26 +275,24 @@ class ValidationManager {
         const task = registry.get(downloadId);
         if (!task) {
             this.errors.push('Tarea de descarga no encontrada');
+            log.error(`downloadId=${downloadId}`, 'validateBeforeExecute: tarea no encontrada');
             return false;
         }
 
-        // Validaciones síncronas
         this.validateFfmpegExists(path.join(__dirname, '..', '..', 'ffmpeg.exe'));
         this.validateYtdlpAvailable();
-        // Pasamos downloadId para excluir la propia descarga de la validación de duplicados
         this.validateNoDuplicateDownloads(registry, task.url, downloadId);
         this.validateExistingFiles(pathResolver, registry, downloadId);
         this.validatePathLength(task.outputPath);
-        
-        // Validaciones asíncronas
+
         await this.validateNetworkConnection();
 
+        if (this.errors.length > 0) {
+            log.warn(`downloadId=${downloadId}`, 'validateBeforeExecute falló:', this.errors.join('; '));
+        }
         return this.errors.length === 0;
     }
 
-    /**
-     * Obtiene resumen de errores y warnings
-     */
     getValidationSummary() {
         return {
             errors: [...this.errors],
@@ -365,9 +301,6 @@ class ValidationManager {
         };
     }
 
-    /**
-     * Limpia el estado de validaciones
-     */
     clear() {
         this.errors = [];
         this.warnings = [];
