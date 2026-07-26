@@ -47,7 +47,7 @@ class DownloadRegistry {
     updateState(id, newState) {
         const task = this.downloads.get(id);
         if (!task) {
-            log.warn(`downloadId=${id}`, 'updateState falló: no existe`);
+            log.warn(`downloadId=${id}`, 'updateState fallo: no existe');
             return false;
         }
 
