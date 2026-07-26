@@ -27,7 +27,7 @@ class DownloadManager extends EventEmitter {
             this.executor,
             this
         );
-        this.playlistExpander = new PlaylistExpander(100);
+        this.playlistExpander = new PlaylistExpander();
         this.validator = new ValidationManager();
 
         this.setupEventForwarding();
@@ -71,8 +71,19 @@ class DownloadManager extends EventEmitter {
         return { success: true, downloadId };
     }
 
+    getPlaylistMax() {
+        const slots = this.semaphore.maxConcurrent;
+        if (slots <= 5) return 100;
+        if (slots <= 10) return 200;
+        if (slots <= 15) return 400;
+        return 1000;
+    }
+
     async addPlaylist(url, outputPath, metadata = {}) {
         try {
+            const playlistMax = this.getPlaylistMax();
+            this.playlistExpander.maxPlaylistSize = playlistMax;
+
             this.emit('playlist-expansion-started', { url });
             
             const info = await this.playlistExpander.getPlaylistInfo(url);
@@ -83,10 +94,10 @@ class DownloadManager extends EventEmitter {
                 title: info.title 
             });
 
-            if (info.count > 100) {
+            if (info.count > playlistMax) {
                 return { 
                     success: false, 
-                    error: `Playlist demasiado grande: ${info.count} videos (max 100)` 
+                    error: `Playlist demasiado grande: ${info.count} videos (max ${playlistMax})` 
                 };
             }
 
