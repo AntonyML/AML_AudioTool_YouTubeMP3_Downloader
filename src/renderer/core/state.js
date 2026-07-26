@@ -5,6 +5,7 @@ const state = {
     currentUrl: null,
     folder: null,
     isPlaylist: false,
+    selectedFormat: 'mp3',
     ffmpegAvailable: false,
     downloads: new Map(),
     uiUpdateThrottle: new Map(),

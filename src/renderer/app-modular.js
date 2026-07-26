@@ -117,6 +117,13 @@ window.changePerformance = async (slots) => {
     }
 };
 
+window.selectFormat = (format) => {
+    state.selectedFormat = format;
+    document.getElementById('formatMp3').classList.toggle('active', format === 'mp3');
+    document.getElementById('formatMp4').classList.toggle('active', format === 'mp4');
+    document.getElementById('downloadBtn').textContent = format === 'mp3' ? 'Descargar MP3' : 'Descargar MP4';
+};
+
 window.selectFolder = async () => {
     const folder = await ipcRenderer.invoke('select-folder');
     if (!folder) {
@@ -153,7 +160,8 @@ window.startDownload = async () => {
         outputPath: state.folder,
         metadata: { 
             addedAt: new Date().toISOString(),
-            isPlaylist: state.isPlaylist
+            isPlaylist: state.isPlaylist,
+            format: state.selectedFormat
         }
     });
 

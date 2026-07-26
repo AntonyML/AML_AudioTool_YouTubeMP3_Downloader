@@ -265,13 +265,15 @@ class ValidationManager {
         const task = registry.get(downloadId);
         if (!task) return true;
 
-        const existingFiles = pathResolver.listExistingFiles(task.outputPath);
+        const format = (task.metadata && task.metadata.format) || 'mp3';
+        const existingFiles = pathResolver.listExistingFiles(task.outputPath, format);
 
         // Para URLs individuales, verificar si el archivo ya existe
         if (!task.metadata.isPlaylist) {
             // Intentar predecir el nombre del archivo
-            const predictedName = pathResolver.predictFilename(task.metadata.title);
-            if (predictedName && existingFiles.includes(predictedName.replace('.mp3', ''))) {
+            const predictedName = pathResolver.predictFilename(task.metadata.title, format);
+            const ext = '.' + format;
+            if (predictedName && existingFiles.includes(predictedName.replace(ext, ''))) {
                 // Marcar como ya existente
                 registry.updateState(downloadId, 'ALREADY_EXISTS');
                 this.warnings.push(`Archivo ya existe: ${predictedName}`);

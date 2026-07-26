@@ -16,7 +16,7 @@ const unlockUI = () => {
     document.getElementById('urlInput').value = '';
     document.getElementById('validateBtn').disabled = false;
     document.getElementById('folderBtn').disabled = false;
-    document.getElementById('downloadBtn').textContent = 'Descargar MP3';
+    document.getElementById('downloadBtn').textContent = 'Descargar ' + (state.selectedFormat || 'mp3').toUpperCase();
     
     // Habilitar botones de rendimiento por defecto al inicio
     document.querySelectorAll('.perf-btn').forEach(btn => {

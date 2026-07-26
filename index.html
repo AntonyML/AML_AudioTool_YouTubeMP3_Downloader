@@ -96,9 +96,17 @@
                         </button>
                         <div id="folderPath" class="folder-path-display"></div>
                     </div>
+
+                    <div class="format-section">
+                        <label>Formato</label>
+                        <div class="format-toggle">
+                            <button id="formatMp3" class="format-btn active" onclick="selectFormat('mp3')">MP3</button>
+                            <button id="formatMp4" class="format-btn" onclick="selectFormat('mp4')">MP4</button>
+                        </div>
+                    </div>
                     
                     <button id="downloadBtn" class="download-btn" onclick="startDownload()" disabled>
-                        Agregar a descargas
+                        Descargar MP3
                     </button>
                 </div>
 

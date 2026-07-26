@@ -46,15 +46,16 @@ class DownloadPathResolver {
      * @param {string} outputPath - Carpeta destino
      * @returns {string[]} Lista de archivos MP3 existentes
      */
-    listExistingFiles(outputPath) {
+    listExistingFiles(outputPath, format = 'mp3') {
         try {
             if (!fs.existsSync(outputPath)) {
                 return [];
             }
 
+            const ext = format === 'mp4' ? '.mp4' : '.mp3';
             return fs.readdirSync(outputPath)
-                .filter(file => file.endsWith('.mp3'))
-                .map(file => file.replace('.mp3', '')); // Remover extensión para comparación
+                .filter(file => file.endsWith(ext))
+                .map(file => file.replace(ext, ''));
         } catch (error) {
             console.warn(`Error listando archivos en ${outputPath}:`, error.message);
             return [];
@@ -64,9 +65,10 @@ class DownloadPathResolver {
     /**
      * Predice el nombre del archivo basado en el título (aproximado)
      * @param {string} title - Título del video
+     * @param {string} format - Formato (mp3 o mp4)
      * @returns {string} Nombre esperado del archivo
      */
-    predictFilename(title) {
+    predictFilename(title, format = 'mp3') {
         if (!title) return '';
 
         // Simular la sanitización de yt-dlp
@@ -75,7 +77,7 @@ class DownloadPathResolver {
             .replace(/\s+/g, '_') // Espacios a guiones bajos
             .substring(0, 80); // Limitar a 80 chars
 
-        return sanitized + '.mp3';
+        return sanitized + '.' + (format === 'mp4' ? 'mp4' : 'mp3');
     }
 }
 

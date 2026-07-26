@@ -52,11 +52,12 @@ class DownloadExecutor {
     }
 
     buildDownloadArgs(outputTemplate, ffmpegPath, url, metadata) {
+        const isMp4 = metadata && metadata.format === 'mp4';
         const args = [
-            '-f', 'bestaudio/best',
-            '-x',
-            '--audio-format', 'mp3',
-            '--audio-quality', '0',
+            ...(isMp4
+                ? ['-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]', '--merge-output-format', 'mp4']
+                : ['-f', 'bestaudio/best', '-x', '--audio-format', 'mp3', '--audio-quality', '0']
+            ),
             '--restrict-filenames',
             '--trim-filenames', '100',
             '--newline',
