@@ -1,11 +1,22 @@
 // DownloadExecutor.js - Capa de Ejecución con yt-dlp
 // Maneja spawning, streams, progreso y cancelación
 
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const DownloadPathResolver = require('./DownloadPathResolver');
 const ValidationManager = require('./ValidationManager');
+
+function resolveFfmpegPath() {
+    const embedded = path.join(__dirname, '..', '..', 'ffmpeg.exe');
+    if (fs.existsSync(embedded)) return embedded;
+    try {
+        return execSync('where ffmpeg', { encoding: 'utf8', timeout: 5000 })
+            .split('\r\n')[0].trim();
+    } catch {
+        return null;
+    }
+}
 
 class DownloadExecutor {
     constructor(registry, eventEmitter) {
@@ -81,7 +92,7 @@ class DownloadExecutor {
 
         return new Promise((resolve, reject) => {
             const outputTemplate = this.buildOutputTemplate(task.outputPath);
-            const ffmpegPath = path.join(__dirname, '..', '..', 'ffmpeg.exe');
+            const ffmpegPath = resolveFfmpegPath();
             const args = this.buildDownloadArgs(outputTemplate, ffmpegPath, task.url, task.metadata);
 
             const ytdlp = spawn('yt-dlp', args, {

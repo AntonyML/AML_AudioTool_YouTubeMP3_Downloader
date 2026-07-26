@@ -141,12 +141,25 @@ class ValidationManager {
     /**
      * Valida que ffmpeg.exe existe en la ubicación esperada
      */
-    validateFfmpegExists(ffmpegPath) {
-        if (!fs.existsSync(ffmpegPath)) {
-            this.errors.push(`ffmpeg.exe no encontrado en: ${ffmpegPath}`);
-            return false;
+    resolveFfmpegPath() {
+        try {
+            return execSync('where ffmpeg', { encoding: 'utf8', timeout: 5000 })
+                .split('\r\n')[0].trim();
+        } catch {
+            return null;
         }
-        return true;
+    }
+
+    validateFfmpegExists(ffmpegPath) {
+        if (ffmpegPath && fs.existsSync(ffmpegPath)) {
+            return true;
+        }
+        const fromPath = this.resolveFfmpegPath();
+        if (fromPath) {
+            return true;
+        }
+        this.errors.push(`ffmpeg.exe no encontrado. Instálalo con: winget install ffmpeg`);
+        return false;
     }
 
     /**

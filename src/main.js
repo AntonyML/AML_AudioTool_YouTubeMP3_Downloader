@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 const DownloadManager = require('./core/DownloadManager');
 
@@ -20,7 +21,10 @@ function createWindow() {
     
     downloadManager = new DownloadManager({ maxConcurrent: 20 });
     setupDownloadEvents();
-    setupAutoUpdater();
+    const updateConfigPath = path.join(process.resourcesPath, 'app-update.yml');
+    if (fs.existsSync(updateConfigPath)) {
+        setupAutoUpdater();
+    }
 }
 
 function setupDownloadEvents() {
