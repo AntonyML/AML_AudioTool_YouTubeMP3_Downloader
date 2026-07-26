@@ -68,12 +68,13 @@ class DownloadExecutor {
             '--no-check-certificate',
             '--prefer-free-formats',
             '--no-warnings',
+            '--cookies-from-browser', 'chrome',
             '-o', outputTemplate,
             url
         ];
         
         if (fs.existsSync(ffmpegPath)) {
-            args.splice(8, 0, '--ffmpeg-location', ffmpegPath);
+            args.push('--ffmpeg-location', ffmpegPath);
         }
         
         if (metadata && !metadata.isPlaylist) {
