@@ -143,8 +143,8 @@ class ValidationManager {
      */
     resolveFfmpegPath() {
         try {
-            return execSync('where ffmpeg', { encoding: 'utf8', timeout: 5000 })
-                .split('\r\n')[0].trim();
+            execSync('ffmpeg -version', { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
+            return 'ffmpeg';
         } catch {
             return null;
         }
