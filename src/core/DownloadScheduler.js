@@ -2,12 +2,13 @@
 // Gestiona cola FIFO y controla concurrencia
 
 class DownloadScheduler {
-    constructor(registry, stateMachine, semaphore, executor, eventEmitter) {
+    constructor(registry, stateMachine, semaphore, executor, eventEmitter, staggerDelayMs = 800) {
         this.registry = registry;
         this.stateMachine = stateMachine;
         this.semaphore = semaphore;
         this.executor = executor;
         this.emitter = eventEmitter;
+        this.staggerDelayMs = staggerDelayMs;
         this.running = false;
 
         this.emitter.on('download-finished', () => this.processQueue());
@@ -56,12 +57,14 @@ class DownloadScheduler {
         }
     }
 
-    startDownload(downloadId) {
+    async startDownload(downloadId) {
         const task = this.registry.get(downloadId);
         if (!task) {
             this.semaphore.release();
             return;
         }
+
+        await new Promise(resolve => setTimeout(resolve, this.staggerDelayMs));
 
         this.executor.execute(downloadId)
             .then(() => {

@@ -25,7 +25,7 @@
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Slots</span>
-                        <span class="stat-value" id="slotsAvailable">20/20</span>
+                        <span class="stat-value" id="slotsAvailable">5/5</span>
                     </div>
                 </div>
             </div>
@@ -72,12 +72,12 @@
                 <div class="input-section">
                     <label>Rendimiento</label>
                     <div class="performance-selector">
+                        <button class="perf-btn active" data-level="3" onclick="changePerformance(3)">Lento (3)</button>
                         <button class="perf-btn" data-level="5" onclick="changePerformance(5)">Bajo (5)</button>
                         <button class="perf-btn" data-level="10" onclick="changePerformance(10)">Medio (10)</button>
                         <button class="perf-btn" data-level="15" onclick="changePerformance(15)">Alto (15)</button>
-                        <button class="perf-btn active" data-level="20" onclick="changePerformance(20)">Ultra (20)</button>
                     </div>
-                    <small style="color: #666; margin-top: 5px; display: block;">Ajusta según tu PC (5=vieja, 20=potente)</small>
+                    <small style="color: #666; margin-top: 5px; display: block;">Ajusta según tu PC (3=conservador, 15=rápido)</small>
                 </div>
 
                 <div class="input-section">

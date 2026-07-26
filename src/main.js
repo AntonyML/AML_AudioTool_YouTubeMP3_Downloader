@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
@@ -18,8 +18,38 @@ function createWindow() {
     });
 
     win.loadFile('index.html');
-    
-    downloadManager = new DownloadManager({ maxConcurrent: 20 });
+
+    // Security: CSP
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': [
+                    "default-src 'self'; " +
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                    "style-src 'self' 'unsafe-inline'; " +
+                    "img-src 'self' data:; " +
+                    "connect-src 'self' https:; " +
+                    "media-src 'none'; " +
+                    "frame-src 'none'; " +
+                    "child-src 'none'; " +
+                    "object-src 'none'"
+                ]
+            }
+        });
+    });
+
+    // Security: block external navigation
+    win.webContents.on('will-navigate', (event, url) => {
+        if (!url.startsWith('file://')) {
+            event.preventDefault();
+        }
+    });
+
+    // Security: block window.open
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
+    downloadManager = new DownloadManager({ maxConcurrent: 5 });
     setupDownloadEvents();
     const updateConfigPath = path.join(process.resourcesPath, 'app-update.yml');
     if (fs.existsSync(updateConfigPath)) {
@@ -27,51 +57,28 @@ function createWindow() {
     }
 }
 
+function safeSend(channel, data) {
+    if (win && !win.isDestroyed()) {
+        win.webContents.send(channel, data);
+    }
+}
+
 function setupDownloadEvents() {
-    downloadManager.on('download-created', (data) => {
-        win.webContents.send('download-created', data);
-    });
-
-    downloadManager.on('state-changed', (data) => {
-        win.webContents.send('download-state-changed', data);
-    });
-
-    downloadManager.on('download-progress', (data) => {
-        win.webContents.send('download-progress', data);
-    });
-
-    downloadManager.on('download-finished', (data) => {
-        win.webContents.send('download-finished', data);
-    });
-
-    downloadManager.on('download-error', (data) => {
-        win.webContents.send('download-error', data);
-    });
-
-    downloadManager.on('download-output', (data) => {
-        win.webContents.send('download-output', data);
-    });
-
-    downloadManager.on('playlist-expansion-started', (data) => {
-        win.webContents.send('playlist-expansion-started', data);
-    });
-
-    downloadManager.on('playlist-info', (data) => {
-        win.webContents.send('playlist-info', data);
-    });
-
-    downloadManager.on('playlist-expanded', (data) => {
-        win.webContents.send('playlist-expanded', data);
-    });
-
-    downloadManager.on('playlist-error', (data) => {
-        win.webContents.send('playlist-error', data);
-    });
+    downloadManager.on('download-created', (data) => safeSend('download-created', data));
+    downloadManager.on('state-changed', (data) => safeSend('download-state-changed', data));
+    downloadManager.on('download-progress', (data) => safeSend('download-progress', data));
+    downloadManager.on('download-finished', (data) => safeSend('download-finished', data));
+    downloadManager.on('download-error', (data) => safeSend('download-error', data));
+    downloadManager.on('download-output', (data) => safeSend('download-output', data));
+    downloadManager.on('playlist-expansion-started', (data) => safeSend('playlist-expansion-started', data));
+    downloadManager.on('playlist-info', (data) => safeSend('playlist-info', data));
+    downloadManager.on('playlist-expanded', (data) => safeSend('playlist-expanded', data));
+    downloadManager.on('playlist-error', (data) => safeSend('playlist-error', data));
 }
 
 ipcMain.handle('select-folder', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({ 
-        properties: ['openDirectory'] 
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openDirectory']
     });
     return canceled ? '' : filePaths[0];
 });
@@ -102,16 +109,10 @@ ipcMain.handle('get-stats', async () => {
 ipcMain.handle('change-max-concurrent', async (event, { maxConcurrent }) => {
     try {
         const stats = downloadManager.getStats();
-        
         if (stats.registry.active > 0 || stats.registry.queued > 0) {
-            return { 
-                success: false, 
-                error: 'No se puede cambiar con descargas activas' 
-            };
+            return { success: false, error: 'No se puede cambiar con descargas activas' };
         }
-        
         downloadManager.setMaxConcurrent(maxConcurrent);
-        
         return { success: true };
     } catch (error) {
         return { success: false, error: error.message };
@@ -156,62 +157,46 @@ function setupAutoUpdater() {
     autoUpdater.on('checking-for-update', () => {
         if (isSilentCheck) {
             isSilentCheck = false;
-            return; // Silent startup: don't show "checking" banner
+            return;
         }
-        if (win && !win.isDestroyed()) {
-            win.webContents.send('update-checking');
-        }
+        safeSend('update-checking');
     });
 
     autoUpdater.on('update-available', (info) => {
-        if (win && !win.isDestroyed()) {
-            win.webContents.send('update-available', {
-                version: info.version,
-                releaseDate: info.releaseDate,
-                releaseNotes: info.releaseNotes
-            });
-        }
+        safeSend('update-available', {
+            version: info.version,
+            releaseDate: info.releaseDate,
+            releaseNotes: info.releaseNotes
+        });
     });
 
     autoUpdater.on('update-not-available', (info) => {
-        if (win && !win.isDestroyed()) {
-            win.webContents.send('update-not-available', info);
-        }
+        safeSend('update-not-available', info);
     });
 
     autoUpdater.on('download-progress', (progress) => {
-        if (win && !win.isDestroyed()) {
-            win.webContents.send('update-download-progress', {
-                percent: Math.round(progress.percent),
-                bytesPerSecond: progress.bytesPerSecond,
-                total: progress.total,
-                transferred: progress.transferred
-            });
-        }
+        safeSend('update-download-progress', {
+            percent: Math.round(progress.percent),
+            bytesPerSecond: progress.bytesPerSecond,
+            total: progress.total,
+            transferred: progress.transferred
+        });
     });
 
     autoUpdater.on('update-downloaded', (info) => {
-        if (win && !win.isDestroyed()) {
-            win.webContents.send('update-downloaded', {
-                version: info.version
-            });
-        }
+        safeSend('update-downloaded', { version: info.version });
     });
 
     autoUpdater.on('error', (err) => {
-        if (win && !win.isDestroyed()) {
-            win.webContents.send('update-error', {
-                message: err.message || 'Error de actualización desconocido'
-            });
-        }
+        safeSend('update-error', {
+            message: err.message || 'Error de actualización desconocido'
+        });
     });
 
     // ── Silent update check on startup ──
     setTimeout(() => {
         isSilentCheck = true;
-        autoUpdater.checkForUpdates().catch(() => {
-            // Silently ignore startup check errors
-        });
+        autoUpdater.checkForUpdates().catch(() => {});
     }, 5000);
 }
 

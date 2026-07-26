@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     updateConsole('Sistema de descargas concurrentes activo');
-    updateConsole('Maximo: 20 descargas simultaneas');
-    updateSystemStatus('Max concurrentes: 20', 'info');
+    updateConsole('Maximo: 5 descargas simultaneas');
+    updateSystemStatus('Max concurrentes: 5', 'info');
     updateConsole('Aplicacion lista');
     
     updateStats();
@@ -485,7 +485,7 @@ async function updateStats() {
         document.getElementById('queueCount').textContent = queued;
         
         const available = stats.semaphore.available || 0;
-        const max = stats.semaphore.maxConcurrent || 20;
+        const max = stats.semaphore.maxConcurrent || 5;
         document.getElementById('slotsAvailable').textContent = 
             `${available}/${max}`;
         

@@ -12,7 +12,8 @@ const state = {
     visibleRange: { start: 0, end: CONFIG.PAGINATION.ITEMS_PER_PAGE },
     allDownloadIds: [],
     currentPerformance: CONFIG.PERFORMANCE.DEFAULT,
-    waitingForFirstDownload: false
+    waitingForFirstDownload: false,
+    hasBrowserCookies: false
 };
 
 module.exports = state;

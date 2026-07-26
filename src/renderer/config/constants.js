@@ -2,11 +2,11 @@
 const CONFIG = {
     // Configuración de rendimiento
     PERFORMANCE: {
-        LOW: 5,
-        MEDIUM: 10,
-        HIGH: 15,
-        ULTRA: 20,
-        DEFAULT: 20
+        LOW: 3,
+        MEDIUM: 5,
+        HIGH: 10,
+        ULTRA: 15,
+        DEFAULT: 5
     },
     
     // Configuración de paginación
@@ -69,7 +69,7 @@ const CONFIG = {
 };
 
 // Helpers para acceso rápido
-const PERFORMANCE_LEVELS = Object.values(CONFIG.PERFORMANCE).filter(v => typeof v === 'number' && v !== CONFIG.PERFORMANCE.DEFAULT);
+const PERFORMANCE_LEVELS = [...new Set(Object.values(CONFIG.PERFORMANCE).filter(v => typeof v === 'number'))];
 
 const isTerminalState = (state) => {
     return CONFIG.TERMINAL_STATES.includes(state);

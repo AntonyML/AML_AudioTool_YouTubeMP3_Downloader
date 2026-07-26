@@ -110,7 +110,7 @@ window.changePerformance = async (slots) => {
             }
         });
         
-        const playlistMax = slots <= 5 ? 100 : slots <= 10 ? 200 : slots <= 15 ? 400 : 1000;
+        const playlistMax = slots <= 3 ? 50 : slots <= 5 ? 100 : slots <= 10 ? 200 : slots <= 15 ? 400 : 1000;
         updateConsole(`Rendimiento: ${slots} descargas | Playlist max: ${playlistMax} videos`);
         updateSystemStatus(`Max concurrentes: ${slots}`, 'success');
     } else {

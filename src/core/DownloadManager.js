@@ -14,8 +14,9 @@ class DownloadManager extends EventEmitter {
     constructor(config = {}) {
         super();
         
-        const maxConcurrent = config.maxConcurrent || 20;
-        
+        const maxConcurrent = config.maxConcurrent || 5;
+        const staggerDelayMs = config.staggerDelayMs || 800;
+
         this.registry = new DownloadRegistry();
         this.stateMachine = new StateMachine(this.registry, this);
         this.semaphore = new ResourceSemaphore(maxConcurrent);
@@ -25,7 +26,8 @@ class DownloadManager extends EventEmitter {
             this.stateMachine,
             this.semaphore,
             this.executor,
-            this
+            this,
+            staggerDelayMs
         );
         this.playlistExpander = new PlaylistExpander();
         this.validator = new ValidationManager();
@@ -73,6 +75,7 @@ class DownloadManager extends EventEmitter {
 
     getPlaylistMax() {
         const slots = this.semaphore.maxConcurrent;
+        if (slots <= 3) return 50;
         if (slots <= 5) return 100;
         if (slots <= 10) return 200;
         if (slots <= 15) return 400;
