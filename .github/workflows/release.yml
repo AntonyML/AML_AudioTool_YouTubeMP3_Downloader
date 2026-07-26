@@ -85,6 +85,8 @@ jobs:
     steps:
       - name: ⬇️ Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 🔧 Setup Node.js 22
         uses: actions/setup-node@v4
@@ -92,17 +94,49 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      - name: 📝 Sync package.json version
+        shell: bash
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            pkg.version = '${VERSION}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('✅ package.json version → ${VERSION}');
+          "
+
       - name: 📥 Install dependencies
         run: npm ci
+
+      - name: 📦 Download ffmpeg + yt-dlp
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path bin
+          Write-Host "⬇️ Downloading yt-dlp.exe..."
+          Invoke-WebRequest -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile bin\yt-dlp.exe
+          Write-Host "⬇️ Downloading ffmpeg.exe..."
+          Invoke-WebRequest -Uri "https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip" -OutFile ffmpeg.zip
+          Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg-tmp -Force
+          Copy-Item ffmpeg-tmp\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe bin\ffmpeg.exe -Force
+          Remove-Item -Recurse -Force ffmpeg.zip, ffmpeg-tmp
+          Write-Host "✅ ffmpeg.exe + yt-dlp.exe listos en bin/"
 
       - name: 🏗️ Build Windows (portable EXE)
         run: npm run build:win -- --publish=never
 
-      - name: 📤 Upload build artifacts
+      - name: 📤 Upload app artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AML-Audio-Tool-Windows
+          name: app-build
           path: dist/
+          if-no-files-found: error
+
+      - name: 📤 Upload binary dependencies
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-bins
+          path: bin/
           if-no-files-found: error
 
   # ──────────────────────────────────────────────
@@ -119,25 +153,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 📥 Download build artifacts
+      - name: 📥 Download app build
         uses: actions/download-artifact@v4
         with:
+          name: app-build
           path: release-assets
-          merge-multiple: true
 
-      - name: 🧹 Filter distributable assets (keep only EXE + updater files)
+      - name: 📥 Download binary dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: app-bins
+          path: release-assets
+
+      - name: 🧹 Filter distributable assets
         shell: bash
         run: |
           echo "─── Assets before filtering ───"
-          find release-assets -type f | sort | wc -l
-          echo " total files"
+          find release-assets -type f | sort
           echo ""
-          echo "Keeping only: *.exe, latest*.yml, app-update.yml"
-          echo "(Removing ~150+ Electron runtime internals: .pak, .so, .dll, .bin, .dat, etc.)"
+          echo "Keeping only: portable EXE, ffmpeg.exe, yt-dlp.exe, latest*.yml"
+          echo "(Removing win-unpacked runtime files, elevate.exe, debug logs, etc.)"
           find release-assets -type f \
-            ! -name '*.exe' \
+            ! -name 'AML Audio Tool *.exe' \
+            ! -name 'ffmpeg.exe' \
+            ! -name 'yt-dlp.exe' \
             ! -name 'latest*.yml' \
-            ! -name 'app-update.yml' \
             -delete
           echo ""
           echo "─── Assets to publish ───"
@@ -166,19 +206,6 @@ jobs:
                 throw e;
               }
             }
-
-      # ── Sincronizar package.json con la versión del tag ──
-      - name: 📝 Sync package.json version
-        shell: bash
-        run: |
-          VERSION="${{ needs.prepare.outputs.version }}"
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
-            pkg.version = '${VERSION}';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('✅ package.json version → ${VERSION}');
-          "
 
       - name: 🚀 Create GitHub Release
         uses: softprops/action-gh-release@v2

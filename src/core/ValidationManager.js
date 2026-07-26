@@ -142,9 +142,30 @@ class ValidationManager {
      * Valida que ffmpeg.exe existe en la ubicación esperada
      */
     resolveFfmpegPath() {
+        const inResources = process.resourcesPath
+            ? path.join(process.resourcesPath, 'ffmpeg.exe')
+            : null;
+        if (inResources && fs.existsSync(inResources)) return inResources;
+        const devPath = path.join(__dirname, '..', '..', 'bin', 'ffmpeg.exe');
+        if (fs.existsSync(devPath)) return devPath;
         try {
             execSync('ffmpeg -version', { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
             return 'ffmpeg';
+        } catch {
+            return null;
+        }
+    }
+
+    resolveYtdlpPath() {
+        const inResources = process.resourcesPath
+            ? path.join(process.resourcesPath, 'yt-dlp.exe')
+            : null;
+        if (inResources && fs.existsSync(inResources)) return inResources;
+        const devPath = path.join(__dirname, '..', '..', 'bin', 'yt-dlp.exe');
+        if (fs.existsSync(devPath)) return devPath;
+        try {
+            execSync('yt-dlp --version', { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
+            return 'yt-dlp';
         } catch {
             return null;
         }
@@ -167,12 +188,10 @@ class ValidationManager {
      */
     validateYtdlpAvailable() {
         try {
-            // execSync('yt-dlp --version', { stdio: 'pipe' });
-            // Comentado temporalmente para evitar spawn sincrónico que puede bloquear UI o fallar en empaquetado
-            // Se validará dinámicamente al intentar ejecutar
+            execSync('yt-dlp --version', { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
             return true;
-        } catch (error) {
-            this.errors.push('yt-dlp no está disponible en el PATH del sistema');
+        } catch {
+            this.errors.push('yt-dlp no disponible. Instálalo con: winget install yt-dlp');
             return false;
         }
     }

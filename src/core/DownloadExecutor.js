@@ -8,11 +8,30 @@ const DownloadPathResolver = require('./DownloadPathResolver');
 const ValidationManager = require('./ValidationManager');
 
 function resolveFfmpegPath() {
-    const embedded = path.join(__dirname, '..', '..', 'ffmpeg.exe');
-    if (fs.existsSync(embedded)) return embedded;
+    const inResources = process.resourcesPath
+        ? path.join(process.resourcesPath, 'ffmpeg.exe')
+        : null;
+    if (inResources && fs.existsSync(inResources)) return inResources;
+    const devPath = path.join(__dirname, '..', '..', 'bin', 'ffmpeg.exe');
+    if (fs.existsSync(devPath)) return devPath;
     try {
         execSync('ffmpeg -version', { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
         return 'ffmpeg';
+    } catch {
+        return null;
+    }
+}
+
+function resolveYtdlpPath() {
+    const inResources = process.resourcesPath
+        ? path.join(process.resourcesPath, 'yt-dlp.exe')
+        : null;
+    if (inResources && fs.existsSync(inResources)) return inResources;
+    const devPath = path.join(__dirname, '..', '..', 'bin', 'yt-dlp.exe');
+    if (fs.existsSync(devPath)) return devPath;
+    try {
+        execSync('yt-dlp --version', { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
+        return 'yt-dlp';
     } catch {
         return null;
     }
@@ -95,7 +114,8 @@ class DownloadExecutor {
             const ffmpegPath = resolveFfmpegPath();
             const args = this.buildDownloadArgs(outputTemplate, ffmpegPath, task.url, task.metadata);
 
-            const ytdlp = spawn('yt-dlp', args, {
+            const ytDlpCmd = resolveYtdlpPath() || 'yt-dlp';
+            const ytdlp = spawn(ytDlpCmd, args, {
                 stdio: ['ignore', 'pipe', 'pipe'],
                 cwd: task.outputPath  // CWD teleport: ejecuta en la carpeta destino
             });

@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Downloaded binaries (ffmpeg, yt-dlp) — downloaded at CI build time
+bin/
+
 # Build Output
 dist/
 build/

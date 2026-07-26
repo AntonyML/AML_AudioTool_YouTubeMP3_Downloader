@@ -1,15 +1,13 @@
 ## Descargas
 
-| Plataforma | Archivo |
-|------------|---------|
-| 🪟 Windows | `AML-Audio-Tool-*.exe` |
-| 🐧 Linux   | `AML-Audio-Tool-*.AppImage` |
+| Archivo | Descripción |
+|---------|-------------|
+| `AML-Audio-Tool-*.exe` | App portable (incluye ffmpeg + yt-dlp) |
 
 ### 🚀 Cómo usar
 
-1. Descarga el archivo correspondiente a tu sistema operativo
-2. Ejecuta el archivo (no requiere instalación en Windows — es portable)
-3. Asegúrate de tener **yt-dlp** y **ffmpeg** instalados en tu sistema
+1. Descarga `AML-Audio-Tool-*.exe` y ejecútalo (no requiere instalación)
+2. También puedes descargar `ffmpeg.exe` y `yt-dlp.exe` por separado si ya los tienes
 
 ### 📝 Notas de esta versión
 

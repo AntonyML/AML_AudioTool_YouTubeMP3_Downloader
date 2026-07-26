@@ -1,7 +1,24 @@
 // PlaylistExpander.js - Expande playlists en canciones individuales
 // Evita saturación del sistema con múltiples playlists
 
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+function resolveYtdlpPath() {
+    const inResources = process.resourcesPath
+        ? path.join(process.resourcesPath, 'yt-dlp.exe')
+        : null;
+    if (inResources && fs.existsSync(inResources)) return inResources;
+    const devPath = path.join(__dirname, '..', '..', 'bin', 'yt-dlp.exe');
+    if (fs.existsSync(devPath)) return devPath;
+    try {
+        execSync('yt-dlp --version', { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
+        return 'yt-dlp';
+    } catch {
+        return null;
+    }
+}
 
 class PlaylistExpander {
     constructor(maxPlaylistSize = 100) {
@@ -10,6 +27,7 @@ class PlaylistExpander {
 
     async expandPlaylist(url) {
         return new Promise((resolve, reject) => {
+            const cmd = resolveYtdlpPath() || 'yt-dlp';
             const args = [
                 '--flat-playlist',
                 '--print', 'url',
@@ -17,7 +35,7 @@ class PlaylistExpander {
                 url
             ];
 
-            const ytdlp = spawn('yt-dlp', args, {
+            const ytdlp = spawn(cmd, args, {
                 stdio: ['ignore', 'pipe', 'pipe']
             });
 
@@ -68,6 +86,7 @@ class PlaylistExpander {
 
     async getPlaylistInfo(url) {
         return new Promise((resolve, reject) => {
+            const cmd = resolveYtdlpPath() || 'yt-dlp';
             const args = [
                 '--flat-playlist',
                 '--print', '%(playlist_count)s',
@@ -75,7 +94,7 @@ class PlaylistExpander {
                 url
             ];
 
-            const ytdlp = spawn('yt-dlp', args, {
+            const ytdlp = spawn(cmd, args, {
                 stdio: ['ignore', 'pipe', 'pipe']
             });
 

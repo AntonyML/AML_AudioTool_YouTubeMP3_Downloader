@@ -22,6 +22,10 @@
     "directories": {
       "output": "dist"
     },
+    "extraResources": [
+      "bin/ffmpeg.exe",
+      "bin/yt-dlp.exe"
+    ],
     "files": [
       "src/**/*",
       "index.html",
